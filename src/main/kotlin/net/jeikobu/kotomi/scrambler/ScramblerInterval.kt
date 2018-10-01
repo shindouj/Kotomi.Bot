@@ -1,5 +1,7 @@
 package net.jeikobu.kotomi.scrambler
 
+import org.pmw.tinylog.Logger
+
 class ScramblerInterval(val type: ScramblerIntervalType, val data: String = "") {
     companion object {
         @JvmStatic
@@ -18,7 +20,20 @@ class ScramblerInterval(val type: ScramblerIntervalType, val data: String = "") 
     }
 }
 
-enum class ScramblerIntervalType(name: String) {
+enum class ScramblerIntervalType(val intervalName: String) {
     EVERY_N_SECS("everyNSecs"),
-    EVERY_MEMBER_JOIN_EVENT("everyMemberJoinEvent")
+    EVERY_MEMBER_JOIN_EVENT("everyMemberJoinEvent");
+
+    companion object {
+        @JvmStatic
+        fun fromName(name: String): ScramblerIntervalType {
+            for (value in values()) {
+                if (value.intervalName.equals(name, ignoreCase = true)) {
+                    return value
+                }
+            }
+
+            throw IllegalArgumentException("No such interval type: $name")
+        }
+    }
 }
