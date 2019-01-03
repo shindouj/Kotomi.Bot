@@ -1,12 +1,6 @@
 buildscript {
-    repositories {
-        maven {
-            url "https://nexus.jeikobu.net/repository/maven-repositories/"
-        }
-    }
-
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
     }
 }
 
@@ -15,8 +9,10 @@ plugins {
     id 'application'
     id 'maven-publish'
     id 'org.jetbrains.kotlin.jvm' version '1.2.61'
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id 'com.github.johnrengelman.shadow' version '4.0.2'
 }
+
+mainClassName = "net.jeikobu.kotomi.KotomiMainClassKt"
 
 configurations.all {
     // Check for updates every build
