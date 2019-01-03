@@ -38,12 +38,25 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
         return guildConfig.getValue(ScramblerKeys.SCRAMBLER_ENABLED.configKey, "false", Boolean::class.java).get()
     }
 
-    private fun getInterval(): Optional<String> {
-        return guildConfig.getValue(ScramblerKeys.SCRAMBLER_INTERVAL.configKey, String::class.java)
+    private fun getInterval(): Optional<ScramblerInterval> {
+        val intervalOptional = guildConfig.getValue(ScramblerKeys.SCRAMBLER_INTERVAL.configKey, String::class.java)
+        return if (intervalOptional.isPresent) {
+            Optional.of(ScramblerInterval.fromString(intervalOptional.get()))
+        } else {
+            Optional.empty()
+        }
     }
 
     private fun setInterval() {
+        try {
+            val intervalType = ScramblerIntervalType.fromName(args[1])
+            val data: String = if (args.size > 2) args[2] else ""
 
+            guildConfig.setValue(ScramblerKeys.SCRAMBLER_INTERVAL.configKey, ScramblerInterval(intervalType, data).toString())
+            destinationChannel.sendMessage(getLocalized("intervalSuccess", args[1]))
+        } catch (e: IllegalArgumentException) {
+            destinationChannel.sendMessage(getLocalized("wrongIntervalType", args[1]))
+        }
     }
 
     private fun addRoles() {
@@ -96,11 +109,15 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
 
     private fun setMode() {
         try {
-            val mode = ScramblerModes.valueOf(args[0].toLowerCase())
-            guildConfig.setValue(ScramblerKeys.SCRAMBLER_MODE.configKey, mode.modeName)
-            destinationChannel.sendMessage(getLocalized("modeSetSuccessfully", mode.modeName))
+            if (args.size > 1) {
+                val mode = ScramblerMode.fromName(args[1].toLowerCase())
+                guildConfig.setValue(ScramblerKeys.SCRAMBLER_MODE.configKey, mode.modeName)
+                destinationChannel.sendMessage(getLocalized("modeSetSuccessfully", mode.modeName))
+            } else {
+                destinationChannel.sendMessage(getLocalized("noSuchMode", "empty"))
+            }
         } catch (e: IllegalArgumentException) {
-            destinationChannel.sendMessage(getLocalized("noSuchMode", args[0]))
+            destinationChannel.sendMessage(getLocalized("noSuchMode", args[1]))
         }
     }
 
