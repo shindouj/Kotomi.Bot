@@ -13,7 +13,7 @@ import sx.blah.discord.handle.obj.IGuild
 private val clientBuilder = ClientBuilder()
 
 private val kotomi = KotomiBot(clientBuilder, object: AbstractConfigManager() {
-    val hikariDS = HikariDataSource(HikariConfig("./hikari.properties"))
+    val hikariDS = HikariDataSource(HikariConfig("config/hikari.properties"))
     val globalConfig = YAMLGlobalConfig()
 
     override fun getGlobalConfig(): IGlobalConfig {
