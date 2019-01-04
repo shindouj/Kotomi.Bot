@@ -1,6 +1,7 @@
 package net.jeikobu.kotomi.announcer
 
 import net.jeikobu.jbase.config.AbstractConfigManager
+import net.jeikobu.kotomi.GuildConfigKeys
 import sx.blah.discord.api.events.EventSubscriber
 import sx.blah.discord.handle.impl.events.guild.member.UserBanEvent
 import sx.blah.discord.handle.impl.events.guild.member.UserJoinEvent
@@ -8,8 +9,11 @@ import sx.blah.discord.handle.impl.events.guild.member.UserLeaveEvent
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
 import sx.blah.discord.handle.obj.IUser
+import java.lang.NullPointerException
 
 class AnnouncerListener(private val configManager: AbstractConfigManager) {
+    private val counterRegex = Regex("\\{counter[\\s\\S]*?}")
+
     private fun getAnnouncementChannel(guild: IGuild): IChannel {
         val channelName = configManager.getGuildConfig(guild)
                 .getValue(AnnouncerConfigKeys.ANNOUNCER_CHANNEL.configKey, String::class.java)
@@ -22,29 +26,28 @@ class AnnouncerListener(private val configManager: AbstractConfigManager) {
     }
 
     private fun prepareAnnouncement(announcement: String, user: IUser, guild: IGuild, channel: IChannel): String {
+        val guildConfig = configManager.getGuildConfig(guild)
+
+        val userJoinCounter = guildConfig.getValue(GuildConfigKeys.USER_JOIN_COUNTER.key, String::class.java)
+                .orElseThrow { NullPointerException() }
+
+        val customUserCounter = guildConfig.getValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, String::class.java)
+
         var announcementCopy: String = announcement.replace("{userName}", user.mention())
                 .replace("{serverName}", guild.name)
                 .replace("{channelName}", channel.name)
                 .replace("{userCount}", guild.totalMemberCount.toString())
+                .replace("{userJoinCounter}", userJoinCounter)
 
-        val channelList = announcementCopy.split(" ").mapNotNull { it ->
-            if (it.startsWith("{#") && it.endsWith("}")) {
-                val list = guild.getChannelsByName(it.substringAfterLast("#").substringBeforeLast("}"))
-                if (list.size == 1) {
-                    list.first()
-                } else null
-            } else null
-        }
-
-        for (mentionChannel in channelList) {
-            announcementCopy = announcementCopy.replace("{#" + mentionChannel.name + "}", mentionChannel.mention())
+        if (customUserCounter.isPresent) {
+            announcementCopy = counterRegex.replace(announcementCopy, customUserCounter.get())
         }
 
         return announcementCopy
     }
 
     private fun sendAnnouncement(announcementEvent: Announcements, guild: IGuild, user: IUser) {
-        val guildConfig = configManager.getGuildConfig(guild);
+        val guildConfig = configManager.getGuildConfig(guild)
         val isEnabled = guildConfig.getValue(
             announcementEvent.announcementName + AnnouncerConfigKeys.ANNOUNCER_ENABLED.configKey, String::class.java)
 
@@ -60,8 +63,25 @@ class AnnouncerListener(private val configManager: AbstractConfigManager) {
         }
     }
 
+    fun incrementCounters(guild: IGuild) {
+        val guildConfig = configManager.getGuildConfig(guild)
+
+        val userJoinCounter = guildConfig.getValue(GuildConfigKeys.USER_JOIN_COUNTER.key, Int::class.java)
+        if (userJoinCounter.isPresent) {
+            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, (userJoinCounter.get() + 1).toString())
+        } else {
+            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, guild.totalMemberCount.toString())
+        }
+
+        val customUserCounter = guildConfig.getValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, Int::class.java)
+        if (customUserCounter.isPresent) {
+            guildConfig.setValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, (customUserCounter.get() + 1).toString())
+        }
+    }
+
     @EventSubscriber
     fun onUserJoin(e: UserJoinEvent) {
+        incrementCounters(e.guild)
         sendAnnouncement(Announcements.ANNOUNCEMENT_JOIN, e.guild, e.user)
     }
 

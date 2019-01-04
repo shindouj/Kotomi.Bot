@@ -35,3 +35,4 @@ global.config.yml
 build/*
 
 # Project specific
+config/*
