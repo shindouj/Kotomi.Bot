@@ -34,4 +34,8 @@ WORKDIR /home/kotomi
 
 COPY build/libs/*.jar ./
 
+RUN mv *-all.jar app.jar
+
 RUN mkdir /home/kotomi/config
+
+CMD [ "/usr/bin/jvm/java-8-oracle", "-jar", "app.jar"]
