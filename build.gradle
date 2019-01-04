@@ -12,26 +12,35 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '4.0.2'
 }
 
+group "net.jeikobu"
+sourceCompatibility = 1.8
+
 mainClassName = "net.jeikobu.kotomi.KotomiMainClassKt"
 
-configurations.all {
-    // Check for updates every build
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
-
-group "net.jeikobu"
-
 def releaseNumber = "1.0"
-def isSnapshot = true
-
-version = releaseNumber
-if (isSnapshot) version = version + "-SNAPSHOT"
+def isSnapshot = false
 
 def buildNumber = "LOCAL_DEV_BUILD"
 if (project.hasProperty("teamcity"))
     buildNumber = teamcity["build.number"]
 
-sourceCompatibility = 1.8
+version = releaseNumber + "." + buildNumber
+if (isSnapshot) version = version + "-SNAPSHOT"
+
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": project.name,
+                "Implementation-Version": version,
+                "Main-Class": mainClassName
+        )
+    }
+}
+
+configurations.all {
+    // Check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
 
 repositories {
     maven {
