@@ -2,6 +2,7 @@ package net.jeikobu.kotomi.announcer
 
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.GuildConfigKeys
+import net.jeikobu.kotomi.announcer.tag.TagManager
 import sx.blah.discord.api.events.EventSubscriber
 import sx.blah.discord.handle.impl.events.guild.member.UserBanEvent
 import sx.blah.discord.handle.impl.events.guild.member.UserJoinEvent
@@ -12,8 +13,6 @@ import sx.blah.discord.handle.obj.IUser
 import java.lang.NullPointerException
 
 class AnnouncerListener(private val configManager: AbstractConfigManager) {
-    private val counterRegex = Regex("\\{counter[\\s\\S]*?}")
-
     private fun getAnnouncementChannel(guild: IGuild): IChannel {
         val channelName = configManager.getGuildConfig(guild)
                 .getValue(AnnouncerConfigKeys.ANNOUNCER_CHANNEL.configKey, String::class.java)
@@ -26,24 +25,7 @@ class AnnouncerListener(private val configManager: AbstractConfigManager) {
     }
 
     private fun prepareAnnouncement(announcement: String, user: IUser, guild: IGuild, channel: IChannel): String {
-        val guildConfig = configManager.getGuildConfig(guild)
-
-        val userJoinCounter = guildConfig.getValue(GuildConfigKeys.USER_JOIN_COUNTER.key, String::class.java)
-                .orElseThrow { NullPointerException() }
-
-        val customUserCounter = guildConfig.getValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, String::class.java)
-
-        var announcementCopy: String = announcement.replace("{userName}", user.mention())
-                .replace("{serverName}", guild.name)
-                .replace("{channelName}", channel.name)
-                .replace("{userCount}", guild.totalMemberCount.toString())
-                .replace("{userJoinCounter}", userJoinCounter)
-
-        if (customUserCounter.isPresent) {
-            announcementCopy = counterRegex.replace(announcementCopy, customUserCounter.get())
-        }
-
-        return announcementCopy
+        return TagManager.processMessage(announcement, user, guild)
     }
 
     private fun sendAnnouncement(announcementEvent: Announcements, guild: IGuild, user: IUser) {

@@ -4,6 +4,7 @@ import net.jeikobu.jbase.command.AbstractCommand
 import net.jeikobu.jbase.command.Command
 import net.jeikobu.jbase.command.CommandData
 import net.jeikobu.kotomi.GuildConfigKeys
+import net.jeikobu.kotomi.announcer.tag.TagManager
 import sx.blah.discord.handle.obj.IMessage
 import sx.blah.discord.handle.obj.Permissions
 
@@ -61,23 +62,7 @@ class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
     }
 
     private fun setAnnouncer() {
-        for (a in args.subList(2, args.size)) {
-            if (a.contains("{counter")) {
-                if (a.contains(":start=")) {
-                    try {
-                        val counterStartValue = a.split("=").last().removeSuffix("}").toInt()
-                        guildConfig.setValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, counterStartValue.toString())
-                    } catch (e: java.lang.NumberFormatException) {
-                        destinationChannel.sendMessage(getLocalized("notANumber"))
-                        return
-                    }
-                } else {
-                    guildConfig.setValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, "0")
-                }
-            }
-        }
-
-        val announcement = args.subList(2, args.size).joinToString(separator = " ")
+        val announcement = TagManager.initializeAnnouncement(args.subList(2, args.size).joinToString(separator = " "), destinationGuild)
         guildConfig.setValue(announcerName + AnnouncerConfigKeys.ANNOUNCEMENT.configKey, announcement)
         destinationChannel.sendMessage(getLocalized("announcementSet", getLocalized(announcerName), announcement))
     }
