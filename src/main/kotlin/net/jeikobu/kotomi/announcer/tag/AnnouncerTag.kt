@@ -43,21 +43,15 @@ abstract class AnnouncerTag<T>(configManager: AbstractConfigManager): Localized(
      *
      * Override when needed.
      */
-    internal open fun initializeSettings(tag:String, guild: IGuild): String {
-        return tag
+    internal open fun initializeSettings(tag:String, guild: IGuild) {
+        return
     }
 
-        fun initialize(message:String, guild: IGuild): String {
-        return if (matches(message)) {
-            var messageCopy = message
-
+    fun initialize(message:String, guild: IGuild) {
+        if (matches(message)) {
             for (tag in getRegex().findAll(message)) {
-                messageCopy = messageCopy.replace(tag.value, initializeSettings(tag.value, guild))
+                initializeSettings(tag.value, guild)
             }
-
-            messageCopy
-        } else {
-            message
         }
     }
 

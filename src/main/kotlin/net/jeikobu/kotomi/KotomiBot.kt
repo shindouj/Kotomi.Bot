@@ -12,7 +12,11 @@ import net.jeikobu.kotomi.announcer.tag.impl.string.ServerNameTag
 import net.jeikobu.kotomi.announcer.tag.impl.string.UserNameTag
 import net.jeikobu.kotomi.commands.AboutCommand
 import net.jeikobu.kotomi.scrambler.ScramblerCommand
+import net.jeikobu.kotomi.scrambler.ScramblerListener
+import net.jeikobu.kotomi.scrambler.ScramblerTask
 import sx.blah.discord.api.ClientBuilder
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class KotomiBot(clientBuilder: ClientBuilder?, configManager: AbstractConfigManager?) : AbstractBot(clientBuilder, configManager) {
     fun registerCommands() {
@@ -23,9 +27,13 @@ class KotomiBot(clientBuilder: ClientBuilder?, configManager: AbstractConfigMana
         TagManager.registerTag(UserNameTag(configManager))
 
         client.dispatcher.registerListener(AnnouncerListener(configManager))
+        client.dispatcher.registerListener(ScramblerListener(configManager))
+
         commandManager.registerCommand(AboutCommand::class.java)
         commandManager.registerCommand(AnnouncerConfigCommand::class.java)
         commandManager.registerCommand(ScramblerCommand::class.java)
     }
+
+
 }
 

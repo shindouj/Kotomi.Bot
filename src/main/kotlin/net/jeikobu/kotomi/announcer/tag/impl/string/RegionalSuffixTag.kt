@@ -34,14 +34,12 @@ class RegionalSuffixTag(private val configManager: AbstractConfigManager) : Anno
         return NumericTag.new(innerRegex.find(outerTag)?.value ?: "nothing")
     }
 
-    override fun initializeSettings(tag: String, guild: IGuild): String {
+    override fun initializeSettings(tag: String, guild: IGuild) {
         val innerTagStringRep = innerRegex.find(tag)?.value
         val innerTag = getInnerTag(tag)
 
         if (innerTag != null && innerTagStringRep != null) {
-            return tag.replace(innerTagStringRep, innerTag.initializeSettings(innerTagStringRep, guild))
+            innerTag.initializeSettings(innerTagStringRep, guild)
         }
-
-        return super.initializeSettings(tag, guild)
     }
 }

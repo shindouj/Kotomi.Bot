@@ -7,11 +7,14 @@ import net.jeikobu.jbase.config.AbstractGuildConfig
 import net.jeikobu.jbase.config.IGlobalConfig
 import net.jeikobu.jbase.impl.config.DBGuildConfig
 import net.jeikobu.jbase.impl.config.YAMLGlobalConfig
+import net.jeikobu.kotomi.scrambler.ScramblerTask
 import sx.blah.discord.api.ClientBuilder
 import sx.blah.discord.handle.obj.ActivityType
 import sx.blah.discord.handle.obj.IGuild
 import sx.blah.discord.handle.obj.StatusType
 import java.lang.Thread.sleep
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private val clientBuilder = ClientBuilder()
 
@@ -49,4 +52,7 @@ fun main(args: Array<String>) {
     }
 
     kotomi.client.changePresence(StatusType.ONLINE, ActivityType.PLAYING, "v" + getVersion())
+
+    val tickExecutor = Executors.newScheduledThreadPool(1)
+    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 1, TimeUnit.SECONDS)
 }

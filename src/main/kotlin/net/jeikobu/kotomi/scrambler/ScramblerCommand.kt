@@ -15,6 +15,12 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
             "enable" -> setEnabled(true)
             "disable" -> setEnabled(false)
             "addRole" -> addRoles()
+            "clearRoles" ->  {
+                clearRoles()
+                if (getEnabled()) {
+                    setEnabled(false)
+                }
+            }
             "setMode" -> setMode()
             "setInterval" -> setInterval()
         }
@@ -29,19 +35,19 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
         } else if (getEnabled() == enabled) {
             destinationChannel.sendMessage(getLocalized("alreadySwitched", operationName))
         } else {
-            guildConfig.setValue(ScramblerKeys.SCRAMBLER_ENABLED.configKey, enabled.toString())
+            guildConfig.setValue(ScramblerKeys.SCRAMBLER_ENABLED, enabled.toString())
             destinationChannel.sendMessage(getLocalized("enableSwitchSuccessful", operationName))
         }
     }
 
     private fun getEnabled(): Boolean {
-        return guildConfig.getValue(ScramblerKeys.SCRAMBLER_ENABLED.configKey, "false", Boolean::class.java).get()
+        return (guildConfig.getValue(ScramblerKeys.SCRAMBLER_ENABLED) ?: "false").toBoolean()
     }
 
     private fun getInterval(): Optional<ScramblerInterval> {
-        val intervalOptional = guildConfig.getValue(ScramblerKeys.SCRAMBLER_INTERVAL.configKey, String::class.java)
-        return if (intervalOptional.isPresent) {
-            Optional.of(ScramblerInterval.fromString(intervalOptional.get()))
+        val interval = guildConfig.getValue(ScramblerKeys.SCRAMBLER_INTERVAL)
+        return if (interval != null) {
+            Optional.of(ScramblerInterval.fromString(interval))
         } else {
             Optional.empty()
         }
@@ -50,9 +56,24 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
     private fun setInterval() {
         try {
             val intervalType = ScramblerIntervalType.fromName(args[1])
-            val data: String = if (args.size > 2) args[2] else ""
 
-            guildConfig.setValue(ScramblerKeys.SCRAMBLER_INTERVAL.configKey, ScramblerInterval(intervalType, data).toString())
+            val data: String = if (args.size > 2) {
+                args[2]
+            } else {
+                ""
+            }
+
+            if (data == "" && intervalType.dataRequired) {
+                destinationChannel.sendMessage(getLocalized("dataInputRequired"))
+                return
+            }
+
+            if (!intervalType.isDataValid(data)) {
+                destinationChannel.sendMessage(getLocalized("dataInvalid", data))
+                return
+            }
+
+            guildConfig.setValue(ScramblerKeys.SCRAMBLER_INTERVAL, ScramblerInterval(intervalType, data).toString())
             destinationChannel.sendMessage(getLocalized("intervalSuccess", args[1]))
         } catch (e: IllegalArgumentException) {
             destinationChannel.sendMessage(getLocalized("wrongIntervalType", args[1]))
@@ -61,35 +82,56 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
 
     private fun addRoles() {
         var omittedRoles = ""
-        var rolesList: List<IRole> = args.subList(1, args.size).mapNotNull { x ->
+        val currentRolesList = getRoles()
+
+        val splitRegex = Regex("(\".*?\")|([^\\s]+)")
+
+        var rolesList: List<IRole> = splitRegex.findAll(args.subList(1, args.size).joinToString (separator = " ") { it }).mapNotNull { x ->
+            var role: IRole?
+            var elem = x.value
+
+            if (elem.startsWith("\"") && elem.endsWith("\"")) {
+                elem = elem.substring(1, elem.length - 1)
+            }
+
             try {
-                destinationGuild.getRoleByID(x.toLong())
+                role = destinationGuild.getRoleByID(elem.toLong())
             } catch (e: Exception) {
                 try {
-                    destinationGuild.getRolesByName(x).first()
+                    role = destinationGuild.getRolesByName(elem).first()
                 } catch (e: Exception) {
-                    omittedRoles += "$x, "
-                    null
+                    omittedRoles += "$elem, "
+                    role = null
                 }
             }
-        }
+
+            if (role == null || currentRolesList.contains(role)) {
+                null
+            } else {
+                role
+            }
+        }.toList()
 
         if (rolesList.isEmpty()) {
-            destinationChannel.sendMessage(getLocalized("noRolesFound"))
+            destinationChannel.sendMessage(getLocalized("noRolesFound") + "\n" + getLocalized("rolesAvailable", currentRolesList.joinToString { it.name }))
             return
         } else if (omittedRoles.isNotEmpty()) {
             destinationChannel.sendMessage(getLocalized("omittedRoles", omittedRoles.substringBeforeLast(", ")))
         }
 
-        rolesList += getRoles()
+        destinationChannel.sendMessage(getLocalized("rolesAdded", rolesList.joinToString { it.name }))
+
+        rolesList += currentRolesList
         setRoles(rolesList)
+
+        destinationChannel.sendMessage(getLocalized("rolesAvailable", rolesList.joinToString { it.name }))
     }
 
     private fun getRoles(): List<IRole> {
-        val roleList = guildConfig.getValue(ScramblerKeys.SCRAMBLER_ROLES.configKey, String::class.java)
+        val roleList = guildConfig.getValue(ScramblerKeys.SCRAMBLER_ROLES)
 
-        return if (roleList.isPresent) {
-            roleList.get().split(", ").mapNotNull { x ->
+        return if (roleList != null && roleList != "") {
+            roleList.split(", ").mapNotNull { x ->
                 try {
                     destinationGuild.getRoleByID(x.toLong())
                 } catch (e: Exception) {
@@ -103,15 +145,20 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
     }
 
     private fun setRoles(rolesList: List<IRole>) {
-        val roleStringList: String = rolesList.joinToString { x -> "$x.stringID, " }
-        guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES.configKey, roleStringList)
+        val roleStringList: String = rolesList.joinToString { x -> x.stringID }
+        guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES, roleStringList)
+    }
+
+    private fun clearRoles() {
+        guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES, "")
+        destinationChannel.sendMessage(getLocalized("rolesCleared"))
     }
 
     private fun setMode() {
         try {
             if (args.size > 1) {
                 val mode = ScramblerMode.fromName(args[1].toLowerCase())
-                guildConfig.setValue(ScramblerKeys.SCRAMBLER_MODE.configKey, mode.modeName)
+                guildConfig.setValue(ScramblerKeys.SCRAMBLER_MODE, mode.modeName)
                 destinationChannel.sendMessage(getLocalized("modeSetSuccessfully", mode.modeName))
             } else {
                 destinationChannel.sendMessage(getLocalized("noSuchMode", "empty"))

@@ -27,11 +27,17 @@ class CustomCounterTag(private val configManager: AbstractConfigManager) : Numer
         }
     }
 
-    override fun initializeSettings(tag: String, guild: IGuild): String {
+    override fun initializeSettings(tag: String, guild: IGuild) {
         val optionsMap = splitOptions(optionsRegex.find(tag)?.value?.replace("}", "") ?: "")
 
+        val initWithCurrentUserCount = optionsMap["initWithUserCount"]?.toLowerCase() ?: "false" == "true"
         val reset = optionsMap["reset"]?.toLowerCase() ?: "true" == "true"
         val startStr = optionsMap["start"]
+
+        if (initWithCurrentUserCount) {
+            configManager.getGuildConfig(guild).setValue(configKey, guild.totalMemberCount.toString())
+            return
+        }
 
         if (startStr != null && !reset) {
             try {
@@ -42,8 +48,6 @@ class CustomCounterTag(private val configManager: AbstractConfigManager) : Numer
             }
         } else if (reset || !configManager.getGuildConfig(guild).getValue(configKey, String::class.java).isPresent) {
             configManager.getGuildConfig(guild).setValue(configKey, "0")
-        } 
-
-        return tag
+        }
     }
 }

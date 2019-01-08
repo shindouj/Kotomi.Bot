@@ -10,7 +10,7 @@ import sx.blah.discord.handle.obj.Permissions
 
 @Command(name = "announcer", argsLength = 2, permissions = [Permissions.ADMINISTRATOR])
 class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
-    private val announcerName = args[0].toLowerCase()
+    private val announcerName = if (args.size > 0) { args[0]?.toLowerCase() } else { "" }
 
     override fun run(message: IMessage?) {
         // not using announcerName to denote that it's not about the announcer name but an exceptional command
@@ -62,8 +62,14 @@ class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
     }
 
     private fun setAnnouncer() {
-        val announcement = TagManager.initializeAnnouncement(args.subList(2, args.size).joinToString(separator = " "), destinationGuild)
+        val announcement = args.subList(2, args.size).joinToString(separator = " ")
+
+        TagManager.initializeAnnouncement(announcement, destinationGuild)
         guildConfig.setValue(announcerName + AnnouncerConfigKeys.ANNOUNCEMENT.configKey, announcement)
         destinationChannel.sendMessage(getLocalized("announcementSet", getLocalized(announcerName), announcement))
+    }
+
+    override fun usageMessage(): String {
+        return getLocalized("usage", configManager.getCommandPrefix(destinationGuild))
     }
 }

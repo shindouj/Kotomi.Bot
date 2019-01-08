@@ -2,7 +2,7 @@ package net.jeikobu.kotomi.scrambler
 
 enum class ScramblerMode(val modeName: String) {
     MODE_RANDOM("random"),
-    MODE_EVERY_X_SECS("everyXSeconds");
+    MODE_MEMBER_COUNT("memberCount");
 
     companion object {
         @JvmStatic

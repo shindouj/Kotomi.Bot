@@ -29,14 +29,10 @@ class TagManager {
             return messageCopy
         }
 
-        fun initializeAnnouncement(announcement: String, guild: IGuild): String {
-            var announcementCopy = announcement
-
+        fun initializeAnnouncement(announcement: String, guild: IGuild) {
             for (tag in tagList) {
-                announcementCopy = tag.initialize(announcementCopy, guild)
+                tag.initialize(announcement, guild)
             }
-
-            return announcementCopy
         }
     }
 }
