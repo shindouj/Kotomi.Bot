@@ -22,21 +22,23 @@ class ScramblerTask(private val configManager: AbstractConfigManager, private va
     private val task = Runnable {
         for (guild in guilds) {
             val guildConfig = configManager.getGuildConfig(guild)
-            val configMap: Map<ScramblerKeys, String> = ScramblerConfig(guildConfig).configMap
+            val enabled = guildConfig.getValue(SCRAMBLER_ENABLED)
+            if (enabled != null && enabled.toBoolean()) {
+                val configMap: Map<ScramblerKeys, String> = ScramblerConfig(guildConfig).configMap
+                if (configMap[SCRAMBLER_INTERVAL] != null) {
+                    val scramblerInterval = ScramblerInterval.fromString(configMap[SCRAMBLER_INTERVAL]!!)
+                    var scramblerTick = configMap[SCRAMBLER_TICK] ?: "1"
 
-            if (configMap[SCRAMBLER_ENABLED] != null && configMap[SCRAMBLER_ENABLED]!!.toBoolean() && configMap[SCRAMBLER_INTERVAL] != null) {
-                val scramblerInterval = ScramblerInterval.fromString(configMap[SCRAMBLER_INTERVAL]!!)
-                var scramblerTick = configMap[SCRAMBLER_TICK] ?: "1"
+                    if (scramblerInterval.type == ScramblerIntervalType.EVERY_N_SECS) {
+                        scramblerTick = if (scramblerInterval.data == scramblerTick) {
+                            ScramblerListener.scrambleRoles(configMap, guild)
+                            "1"
+                        } else {
+                            (scramblerTick.toInt() + 1).toString()
+                        }
 
-                if (scramblerInterval.type == ScramblerIntervalType.EVERY_N_SECS) {
-                    scramblerTick = if (scramblerInterval.data == scramblerTick) {
-                        ScramblerListener.scrambleRoles(configMap, guild)
-                        "1"
-                    } else {
-                        (scramblerTick.toInt() + 1).toString()
+                        guildConfig.setValue(ScramblerKeys.SCRAMBLER_TICK.configKey, scramblerTick)
                     }
-
-                    guildConfig.setValue(ScramblerKeys.SCRAMBLER_TICK.configKey, scramblerTick)
                 }
             }
         }
