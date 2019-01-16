@@ -8,6 +8,7 @@ import net.jeikobu.jbase.config.IGlobalConfig
 import net.jeikobu.jbase.impl.config.DBGuildConfig
 import net.jeikobu.jbase.impl.config.YAMLGlobalConfig
 import net.jeikobu.kotomi.scrambler.ScramblerTask
+import org.pmw.tinylog.Logger
 import sx.blah.discord.api.ClientBuilder
 import sx.blah.discord.handle.obj.ActivityType
 import sx.blah.discord.handle.obj.IGuild
@@ -47,6 +48,7 @@ fun main(args: Array<String>) {
         sleep(10)
 
         if (sleepCounter > 10000) {
+            Logger.error("Discord Client did not manage to login after 10 seconds. Exiting.")
             throw Error("Discord Client did not manage to login after 10 seconds. Exiting.")
         }
     }
@@ -54,5 +56,6 @@ fun main(args: Array<String>) {
     kotomi.client.changePresence(StatusType.ONLINE, ActivityType.PLAYING, "v" + getVersion())
 
     val tickExecutor = Executors.newScheduledThreadPool(1)
-    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 1, TimeUnit.SECONDS)
+    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds),
+                                     0, 1, TimeUnit.MINUTES)
 }
