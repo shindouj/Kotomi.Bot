@@ -11,7 +11,7 @@ RUN apt-get -y update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y -q python-software-properties software-properties-common
 
 # update and install support for https:// sources if not already installed
-RUN [[ ! -f /usr/lib/apt/methods/https ]] && apt-get update && apt-get install apt-transport-https
+RUN apt-get update && apt-get install apt-transport-https
 # add my key to trusted APT keys
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A66C5D02
 # add the package repo to sources
