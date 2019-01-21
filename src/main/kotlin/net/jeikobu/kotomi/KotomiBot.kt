@@ -11,6 +11,7 @@ import net.jeikobu.kotomi.announcer.tag.impl.string.RegionalSuffixTag
 import net.jeikobu.kotomi.announcer.tag.impl.string.ServerNameTag
 import net.jeikobu.kotomi.announcer.tag.impl.string.UserNameTag
 import net.jeikobu.kotomi.commands.AboutCommand
+import net.jeikobu.kotomi.commands.DadJokeCommand
 import net.jeikobu.kotomi.scrambler.ScramblerCommand
 import net.jeikobu.kotomi.scrambler.ScramblerListener
 import net.jeikobu.kotomi.scrambler.ScramblerTask
@@ -32,6 +33,7 @@ class KotomiBot(clientBuilder: ClientBuilder?, configManager: AbstractConfigMana
         commandManager.registerCommand(AboutCommand::class.java)
         commandManager.registerCommand(AnnouncerConfigCommand::class.java)
         commandManager.registerCommand(ScramblerCommand::class.java)
+        commandManager.registerCommand(DadJokeCommand::class.java)
     }
 
 
