@@ -45,7 +45,7 @@ class DadJokeCommand(data: CommandData?) : AbstractCommand(data) {
                 .responseObject<DadJoke> { _, _, result ->
                     val (data, error) = result
                     if (error == null && data != null) {
-                        val embed = EmbedBuilder()
+                        val embed = EmbedBuilder().withDesc(data.joke)
                                 .withAuthorName(getLocalized("providerName"))
                                 .withAuthorIcon(getLocalized("iconURL"))
                                 .withAuthorUrl(getLocalized("providerURL"))
