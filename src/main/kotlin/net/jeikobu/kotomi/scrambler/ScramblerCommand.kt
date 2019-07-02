@@ -28,16 +28,20 @@ class ScramblerCommand(data: CommandData) : AbstractCommand(data) {
         }
     }
 
-    fun setEnabled(enabled: Boolean) {
+    private fun setEnabled(enabled: Boolean) {
         val operationName = if (enabled) getLocalized("enabled") else getLocalized("disabled")
 
         if (enabled && getInterval() == null) {
             destinationChannel.sendMessage(getLocalized("intervalFirst")).queue()
             return
+        } else if (enabled && scramblerConfig.scramblerMode == null) {
+            destinationChannel.sendMessage(getLocalized("modeFirst")).queue()
+            return
         } else if (getEnabled() == enabled) {
             destinationChannel.sendMessage(getLocalized("alreadySwitched", operationName)).queue()
         } else {
             scramblerConfig.scramblerEnabled = enabled
+            scramblerConfig.scramblerTick = 0
             destinationChannel.sendMessage(getLocalized("enableSwitchSuccessful", operationName)).queue()
         }
     }

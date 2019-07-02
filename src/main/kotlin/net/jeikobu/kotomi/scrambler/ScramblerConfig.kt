@@ -30,7 +30,7 @@ class ScramblerConfig(private val guildConfig: AbstractGuildConfig) {
 
     var scramblerRoles: List<Role>?
         get() = getRoleList()
-        set(value) = guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES.configKey, value?.joinToString(", "))
+        set(value) = guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES.configKey, value?.joinToString { it.id })
 
     var scramblerTick: Int?
         get() = guildConfig.getValue(ScramblerKeys.SCRAMBLER_TICK.configKey)

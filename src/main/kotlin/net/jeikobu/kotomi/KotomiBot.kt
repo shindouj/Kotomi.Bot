@@ -16,7 +16,7 @@ import net.jeikobu.kotomi.commands.DadJokeCommand
 import net.jeikobu.kotomi.scrambler.ScramblerCommand
 import net.jeikobu.kotomi.scrambler.ScramblerListener
 
-class KotomiBot(private val clientBuilder: JDABuilder, val configManager: AbstractConfigManager) : AbstractBot(clientBuilder, configManager) {
+class KotomiBot(val configManager: AbstractConfigManager) : AbstractBot(configManager) {
     fun registerCommands() {
         TagManager.registerTag(RegionalSuffixTag(configManager))
         TagManager.registerTag(CustomCounterTag(configManager))

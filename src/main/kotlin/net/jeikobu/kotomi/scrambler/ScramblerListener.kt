@@ -35,7 +35,7 @@ class ScramblerListener(private val configManager: AbstractConfigManager) : Even
 
                 for (role in scrambledRoleList) {
                     action.selectPosition(role)
-                    val posDiff = action.selectedPosition + (roleListInCurrentOrder.indexOf(role) - roleList.indexOf(role))
+                    val posDiff = action.selectedPosition + (roleListInCurrentOrder.indexOf(role) - scrambledRoleList.indexOf(role))
                     action.moveTo(posDiff)
                 }
 

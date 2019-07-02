@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 
 private val clientBuilder = JDABuilder()
 
-private val kotomi = KotomiBot(clientBuilder, object : AbstractConfigManager() {
+private val kotomi = KotomiBot(object : AbstractConfigManager() {
     val hikariDS = HikariDataSource(HikariConfig("config/hikari.properties"))
     override val globalConfig = YAMLGlobalConfig()
 
@@ -35,5 +35,5 @@ fun main() {
     kotomi.registerCommands()
     kotomi.client.presence.setPresence(OnlineStatus.ONLINE, Game.playing("v" + getVersion()))
     val tickExecutor = Executors.newScheduledThreadPool(1)
-    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 1, TimeUnit.MINUTES)
+    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 10, TimeUnit.SECONDS)
 }
