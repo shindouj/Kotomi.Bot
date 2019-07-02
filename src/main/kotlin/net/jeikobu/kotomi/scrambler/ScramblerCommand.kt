@@ -1,21 +1,23 @@
 package net.jeikobu.kotomi.scrambler
 
+import net.dv8tion.jda.core.Permission
+import net.dv8tion.jda.core.entities.Message
+import net.dv8tion.jda.core.entities.Role
 import net.jeikobu.jbase.command.AbstractCommand
 import net.jeikobu.jbase.command.Command
 import net.jeikobu.jbase.command.CommandData
-import sx.blah.discord.handle.obj.IMessage
-import sx.blah.discord.handle.obj.IRole
-import sx.blah.discord.handle.obj.Permissions
 import java.util.*
 
-@Command(name = "scrambleRoles", argsLength = 1, permissions = [Permissions.ADMINISTRATOR])
-class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
-    override fun run(message: IMessage?) {
+@Command(name = "scrambleRoles", argsLength = 1, permissions = [Permission.ADMINISTRATOR])
+class ScramblerCommand(data: CommandData) : AbstractCommand(data) {
+    val scramblerConfig = ScramblerConfig(guildConfig)
+
+    override fun run(message: Message) {
         when (args[0]) {
             "enable" -> setEnabled(true)
             "disable" -> setEnabled(false)
             "addRole" -> addRoles()
-            "clearRoles" ->  {
+            "clearRoles" -> {
                 clearRoles()
                 if (getEnabled()) {
                     setEnabled(false)
@@ -29,28 +31,23 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
     fun setEnabled(enabled: Boolean) {
         val operationName = if (enabled) getLocalized("enabled") else getLocalized("disabled")
 
-        if (enabled && !getInterval().isPresent) {
-            destinationChannel.sendMessage(getLocalized("intervalFirst"))
+        if (enabled && getInterval() == null) {
+            destinationChannel.sendMessage(getLocalized("intervalFirst")).queue()
             return
         } else if (getEnabled() == enabled) {
-            destinationChannel.sendMessage(getLocalized("alreadySwitched", operationName))
+            destinationChannel.sendMessage(getLocalized("alreadySwitched", operationName)).queue()
         } else {
-            guildConfig.setValue(ScramblerKeys.SCRAMBLER_ENABLED, enabled.toString())
-            destinationChannel.sendMessage(getLocalized("enableSwitchSuccessful", operationName))
+            scramblerConfig.scramblerEnabled = enabled
+            destinationChannel.sendMessage(getLocalized("enableSwitchSuccessful", operationName)).queue()
         }
     }
 
     private fun getEnabled(): Boolean {
-        return (guildConfig.getValue(ScramblerKeys.SCRAMBLER_ENABLED) ?: "false").toBoolean()
+        return scramblerConfig.scramblerEnabled ?: false
     }
 
-    private fun getInterval(): Optional<ScramblerInterval> {
-        val interval = guildConfig.getValue(ScramblerKeys.SCRAMBLER_INTERVAL)
-        return if (interval != null) {
-            Optional.of(ScramblerInterval.fromString(interval))
-        } else {
-            Optional.empty()
-        }
+    private fun getInterval(): ScramblerInterval? {
+        return scramblerConfig.scramblerInterval
     }
 
     private fun setInterval() {
@@ -64,19 +61,19 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
             }
 
             if (data == "" && intervalType.dataRequired) {
-                destinationChannel.sendMessage(getLocalized("dataInputRequired"))
+                destinationChannel.sendMessage(getLocalized("dataInputRequired")).queue()
                 return
             }
 
             if (!intervalType.isDataValid(data)) {
-                destinationChannel.sendMessage(getLocalized("dataInvalid", data))
+                destinationChannel.sendMessage(getLocalized("dataInvalid", data)).queue()
                 return
             }
 
-            guildConfig.setValue(ScramblerKeys.SCRAMBLER_INTERVAL, ScramblerInterval(intervalType, data).toString())
-            destinationChannel.sendMessage(getLocalized("intervalSuccess", args[1]))
+            scramblerConfig.scramblerInterval = ScramblerInterval(intervalType, data)
+            destinationChannel.sendMessage(getLocalized("intervalSuccess", args[1])).queue()
         } catch (e: IllegalArgumentException) {
-            destinationChannel.sendMessage(getLocalized("wrongIntervalType", args[1]))
+            destinationChannel.sendMessage(getLocalized("wrongIntervalType", args[1])).queue()
         }
     }
 
@@ -86,8 +83,9 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
 
         val splitRegex = Regex("(\".*?\")|([^\\s]+)")
 
-        var rolesList: List<IRole> = splitRegex.findAll(args.subList(1, args.size).joinToString (separator = " ") { it }).mapNotNull { x ->
-            var role: IRole?
+        val rolesList: MutableList<Role> = splitRegex.findAll(
+            args.subList(1, args.size).joinToString(separator = " ") { it }).mapNotNull { x ->
+            var role: Role?
             var elem = x.value
 
             if (elem.startsWith("\"") && elem.endsWith("\"")) {
@@ -95,10 +93,10 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
             }
 
             try {
-                role = destinationGuild.getRoleByID(elem.toLong())
+                role = destinationGuild.getRoleById(elem.toLong())
             } catch (e: Exception) {
                 try {
-                    role = destinationGuild.getRolesByName(elem).first()
+                    role = destinationGuild.getRolesByName(elem, true).first()
                 } catch (e: Exception) {
                     omittedRoles += "$elem, "
                     role = null
@@ -110,61 +108,51 @@ class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
             } else {
                 role
             }
-        }.toList()
+        }.toList().toMutableList()
 
         if (rolesList.isEmpty()) {
-            destinationChannel.sendMessage(getLocalized("noRolesFound") + "\n" + getLocalized("rolesAvailable", currentRolesList.joinToString { it.name }))
+            destinationChannel.sendMessage(getLocalized("noRolesFound") + "\n" + getLocalized("rolesAvailable",
+                                                                                              currentRolesList.joinToString { it.name }))
+                    .queue()
             return
         } else if (omittedRoles.isNotEmpty()) {
-            destinationChannel.sendMessage(getLocalized("omittedRoles", omittedRoles.substringBeforeLast(", ")))
+            destinationChannel.sendMessage(getLocalized("omittedRoles", omittedRoles.substringBeforeLast(", "))).queue()
         }
 
-        destinationChannel.sendMessage(getLocalized("rolesAdded", rolesList.joinToString { it.name }))
+        destinationChannel.sendMessage(getLocalized("rolesAdded", rolesList.joinToString { it.name })).queue()
 
         rolesList += currentRolesList
         setRoles(rolesList)
 
-        destinationChannel.sendMessage(getLocalized("rolesAvailable", rolesList.joinToString { it.name }))
+        destinationChannel.sendMessage(getLocalized("rolesAvailable", rolesList.joinToString { it.name })).queue()
     }
 
-    private fun getRoles(): List<IRole> {
-        val roleList = guildConfig.getValue(ScramblerKeys.SCRAMBLER_ROLES)
-
-        return if (roleList != null && roleList != "") {
-            roleList.split(", ").mapNotNull { x ->
-                try {
-                    destinationGuild.getRoleByID(x.toLong())
-                } catch (e: Exception) {
-                    destinationChannel.sendMessage(getLocalized("roleDeleted", x))
-                    null
-                }
-            }
-        } else {
-            emptyList()
-        }
+    private fun getRoles(): List<Role> {
+        return scramblerConfig.scramblerRoles ?: emptyList()
     }
 
-    private fun setRoles(rolesList: List<IRole>) {
-        val roleStringList: String = rolesList.joinToString { x -> x.stringID }
-        guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES, roleStringList)
+    private fun setRoles(rolesList: List<Role>) {
+        scramblerConfig.scramblerRoles = rolesList
     }
 
     private fun clearRoles() {
-        guildConfig.setValue(ScramblerKeys.SCRAMBLER_ROLES, "")
-        destinationChannel.sendMessage(getLocalized("rolesCleared"))
+        scramblerConfig.scramblerRoles = null
+        destinationChannel.sendMessage(getLocalized("rolesCleared")).queue()
     }
 
     private fun setMode() {
         try {
             if (args.size > 1) {
                 val mode = ScramblerMode.fromName(args[1].toLowerCase())
-                guildConfig.setValue(ScramblerKeys.SCRAMBLER_MODE, mode.modeName)
-                destinationChannel.sendMessage(getLocalized("modeSetSuccessfully", mode.modeName))
-            } else {
-                destinationChannel.sendMessage(getLocalized("noSuchMode", "empty"))
+                if (mode != null) {
+                    scramblerConfig.scramblerMode = mode
+                    destinationChannel.sendMessage(getLocalized("modeSetSuccessfully", mode.modeName)).queue()
+                    return
+                }
             }
+            destinationChannel.sendMessage(getLocalized("noSuchMode", "empty")).queue()
         } catch (e: IllegalArgumentException) {
-            destinationChannel.sendMessage(getLocalized("noSuchMode", args[1]))
+            destinationChannel.sendMessage(getLocalized("noSuchMode", args[1])).queue()
         }
     }
 

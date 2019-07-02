@@ -1,75 +1,58 @@
 package net.jeikobu.kotomi.scrambler
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Role
+import net.dv8tion.jda.core.events.Event
+import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
+import net.dv8tion.jda.core.hooks.EventListener
+import net.dv8tion.jda.core.requests.restaction.order.RoleOrderAction
 import net.jeikobu.jbase.config.AbstractConfigManager
-import sx.blah.discord.api.events.EventSubscriber
-import sx.blah.discord.handle.impl.events.guild.member.UserJoinEvent
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IRole
 
-import net.jeikobu.kotomi.scrambler.ScramblerKeys.*
-
-class ScramblerListener(private val configManager: AbstractConfigManager) {
+class ScramblerListener(private val configManager: AbstractConfigManager) : EventListener {
     companion object {
-        private fun IRole.getMemberCount(): Int {
-            return guild.users.count { it -> it.hasRole(this) }
+
+        private fun Role.getMemberCount(): Int {
+            return guild.members.count { it.roles.contains(this) }
         }
 
-        private fun getRoleList(configMap: Map<ScramblerKeys, String>, guild: IGuild): List<IRole> {
-            val scramblerRoles = configMap[SCRAMBLER_ROLES]
+        fun scrambleRoles(scramblerConfig: ScramblerConfig, guild: Guild) {
+            val scramblerMode = scramblerConfig.scramblerMode
+            val roleList = scramblerConfig.scramblerRoles
 
-            return scramblerRoles?.split(", ")?.mapNotNull { x ->
-                try {
-                    guild.getRoleByID(x.toLong())
-                } catch (e: Exception) {
-                    null
-                }
-            } ?: emptyList()
-        }
+            if (scramblerMode != null && roleList != null) {
+                val roleListInCurrentOrder = guild.roles.filter { roleList.contains(it) }
 
-        fun scrambleRoles(configMap: Map<ScramblerKeys, String>, guild: IGuild) {
-            val scramblerMode = configMap[SCRAMBLER_MODE]
-
-            if (scramblerMode != null) {
-                var roleList = getRoleList(configMap, guild)
-                val roleListInCurrentOrder: List<IRole> = guild.roles.mapNotNull { it: IRole ->
-                    if (roleList.contains(it)) {
-                        it
-                    } else {
-                        null
-                    }
-                }
-
-                roleList = when (ScramblerMode.fromName(scramblerMode)) {
+                val scrambledRoleList = when (scramblerMode) {
                     ScramblerMode.MODE_MEMBER_COUNT -> {
-                        roleList.sortedBy { it -> it.getMemberCount() }
+                        roleList.sortedBy { it.getMemberCount() }
                     }
                     ScramblerMode.MODE_RANDOM -> {
                         roleList.shuffled()
                     }
                 }
 
-                val allRoles: MutableList<IRole> = guild.roles.toMutableList()
+                val action = RoleOrderAction(guild, true)
 
-                for (i in 0 until roleList.size) {
-                    val index = guild.roles.indexOf(roleListInCurrentOrder[i])
-                    allRoles.removeAt(index)
-                    allRoles.add(index, roleList[i])
+                for (role in scrambledRoleList) {
+                    action.selectPosition(role)
+                    val posDiff = action.selectedPosition + (roleListInCurrentOrder.indexOf(role) - roleList.indexOf(role))
+                    action.moveTo(posDiff)
                 }
 
-                guild.reorderRoles(*allRoles.toTypedArray())
+                action.complete()
             }
         }
     }
 
-    @EventSubscriber
-    fun onJoinEvent(e: UserJoinEvent) {
-        val configMap: Map<ScramblerKeys, String> = ScramblerConfig(configManager.getGuildConfig(e.guild)).configMap
+    override fun onEvent(e: Event) {
+        if (e is GuildMemberJoinEvent) {
+            val scramblerConfig = ScramblerConfig(configManager.getGuildConfig(e.guild))
 
-        if (configMap[SCRAMBLER_ENABLED] != null
-                && configMap[SCRAMBLER_ENABLED]!!.toBoolean()
-                && configMap[SCRAMBLER_INTERVAL] != null
-                && ScramblerInterval.fromString(configMap[SCRAMBLER_INTERVAL].toString()).type == ScramblerIntervalType.EVERY_MEMBER_JOIN_EVENT) {
-            scrambleRoles(configMap, e.guild)
+            if (scramblerConfig.scramblerEnabled == true) {
+                if (scramblerConfig.scramblerInterval?.type == ScramblerIntervalType.EVERY_MEMBER_JOIN_EVENT) {
+                    scrambleRoles(scramblerConfig, e.guild)
+                }
+            }
         }
     }
 }

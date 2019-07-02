@@ -1,7 +1,7 @@
 package net.jeikobu.kotomi.announcer.tag
 
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.User
 
 class TagManager {
     companion object {
@@ -19,7 +19,7 @@ class TagManager {
             return tagList
         }
 
-        fun processMessage(message: String, user: IUser, guild: IGuild): String {
+        fun processMessage(message: String, user: User, guild: Guild): String {
             var messageCopy = message
 
             for (tag in tagList) {
@@ -29,7 +29,7 @@ class TagManager {
             return messageCopy
         }
 
-        fun initializeAnnouncement(announcement: String, guild: IGuild) {
+        fun initializeAnnouncement(announcement: String, guild: Guild) {
             for (tag in tagList) {
                 tag.initialize(announcement, guild)
             }
