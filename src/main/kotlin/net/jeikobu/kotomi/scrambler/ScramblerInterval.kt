@@ -3,7 +3,8 @@ package net.jeikobu.kotomi.scrambler
 class ScramblerInterval(val type: ScramblerIntervalType, val data: String = "") {
     companion object {
         @JvmStatic
-        fun fromString(from: String): ScramblerInterval {
+        fun fromString(from: String?): ScramblerInterval? {
+            if (from == null) return null
             val elems = from.split(", ")
 
             val type = ScramblerIntervalType.valueOf(elems[0])
@@ -19,7 +20,7 @@ class ScramblerInterval(val type: ScramblerIntervalType, val data: String = "") 
 }
 
 enum class ScramblerIntervalType(val intervalName: String, val dataRequired: Boolean = false, val isDataValid: (String) -> Boolean = { true }) {
-    EVERY_N_SECS("everyNSecs", true, { it ->
+    EVERY_N_SECS("everyNSecs", true, {
         try {
             it.toInt()
             true

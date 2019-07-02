@@ -6,14 +6,16 @@ enum class ScramblerMode(val modeName: String) {
 
     companion object {
         @JvmStatic
-        fun fromName(name: String): ScramblerMode {
-            for (value in values()) {
-                if (value.modeName.equals(name, ignoreCase = true)) {
-                    return value
+        fun fromName(name: String?): ScramblerMode? {
+            if (name != null) {
+                for (value in values()) {
+                    if (value.modeName.equals(name, ignoreCase = true)) {
+                        return value
+                    }
                 }
             }
 
-            throw IllegalArgumentException("No such interval type: $name")
+            return null
         }
     }
 }

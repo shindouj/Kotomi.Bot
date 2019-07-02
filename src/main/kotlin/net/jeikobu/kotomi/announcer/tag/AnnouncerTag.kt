@@ -1,9 +1,9 @@
 package net.jeikobu.kotomi.announcer.tag
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.User
 import net.jeikobu.jbase.Localized
 import net.jeikobu.jbase.config.AbstractConfigManager
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
 
 abstract class AnnouncerTag<T>(configManager: AbstractConfigManager): Localized() {
     abstract fun getRegex(): Regex
@@ -18,7 +18,7 @@ abstract class AnnouncerTag<T>(configManager: AbstractConfigManager): Localized(
     /**
      * This method replaces tag in the message with actual data from the guild config.
      */
-    fun replaceData(message: String, user: IUser, guild: IGuild): String {
+    fun replaceData(message: String, user: User, guild: Guild): String {
         return if (matches(message)) {
             var messageCopy = message
 
@@ -35,7 +35,7 @@ abstract class AnnouncerTag<T>(configManager: AbstractConfigManager): Localized(
     /**
      * This method simply returns the correct data for the tag.
      */
-    abstract fun getData(tag: String, user: IUser, guild: IGuild): T
+    abstract fun getData(tag: String, user: User, guild: Guild): T
 
     /**
      * This method initializes tag's settings and if they're unneeded in the announcement after initialization,
@@ -43,11 +43,11 @@ abstract class AnnouncerTag<T>(configManager: AbstractConfigManager): Localized(
      *
      * Override when needed.
      */
-    internal open fun initializeSettings(tag:String, guild: IGuild) {
+    internal open fun initializeSettings(tag: String, guild: Guild) {
         return
     }
 
-    fun initialize(message:String, guild: IGuild) {
+    fun initialize(message: String, guild: Guild) {
         if (matches(message)) {
             for (tag in getRegex().findAll(message)) {
                 initializeSettings(tag.value, guild)

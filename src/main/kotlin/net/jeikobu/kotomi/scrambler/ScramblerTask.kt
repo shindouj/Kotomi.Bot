@@ -1,12 +1,11 @@
 package net.jeikobu.kotomi.scrambler
 
+import net.dv8tion.jda.core.entities.Guild
 import net.jeikobu.jbase.config.AbstractConfigManager
-import sx.blah.discord.handle.obj.IGuild
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import net.jeikobu.kotomi.scrambler.ScramblerKeys.*
 
-class ScramblerTask(private val configManager: AbstractConfigManager, private val guilds: List<IGuild>) : Runnable {
+class ScramblerTask(private val configManager: AbstractConfigManager, private val guilds: List<Guild>) : Runnable {
     private val executor = Executors.newSingleThreadExecutor()
     private var lastExecution: Future<out Any>? = null
 
@@ -21,23 +20,17 @@ class ScramblerTask(private val configManager: AbstractConfigManager, private va
 
     private val task = Runnable {
         for (guild in guilds) {
-            val guildConfig = configManager.getGuildConfig(guild)
-            val enabled = guildConfig.getValue(SCRAMBLER_ENABLED)
-            if (enabled != null && enabled.toBoolean()) {
-                val configMap: Map<ScramblerKeys, String> = ScramblerConfig(guildConfig).configMap
-                if (configMap[SCRAMBLER_INTERVAL] != null) {
-                    val scramblerInterval = ScramblerInterval.fromString(configMap[SCRAMBLER_INTERVAL]!!)
-                    var scramblerTick = configMap[SCRAMBLER_TICK] ?: "1"
+            val scramblerConfig = ScramblerConfig(configManager.getGuildConfig(guild))
 
-                    if (scramblerInterval.type == ScramblerIntervalType.EVERY_N_SECS) {
-                        scramblerTick = if (scramblerInterval.data == scramblerTick) {
-                            ScramblerListener.scrambleRoles(configMap, guild)
-                            "1"
-                        } else {
-                            (scramblerTick.toInt() + 1).toString()
-                        }
-
-                        guildConfig.setValue(ScramblerKeys.SCRAMBLER_TICK.configKey, scramblerTick)
+            if (scramblerConfig.scramblerEnabled == true) {
+                val scramblerInterval = scramblerConfig.scramblerInterval
+                val scramblerTick = scramblerConfig.scramblerTick
+                if (scramblerInterval?.type == ScramblerIntervalType.EVERY_N_SECS && scramblerTick != null) {
+                    scramblerConfig.scramblerTick = if (scramblerInterval.data == scramblerTick.toString()) {
+                        ScramblerListener.scrambleRoles(scramblerConfig, guild)
+                        1
+                    } else {
+                        scramblerTick + 1
                     }
                 }
             }

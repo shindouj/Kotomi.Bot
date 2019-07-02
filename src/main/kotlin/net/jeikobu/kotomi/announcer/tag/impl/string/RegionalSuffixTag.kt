@@ -1,10 +1,10 @@
 package net.jeikobu.kotomi.announcer.tag.impl.string
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.User
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.announcer.tag.AnnouncerTag
 import net.jeikobu.kotomi.announcer.tag.NumericTag
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
 
 class RegionalSuffixTag(private val configManager: AbstractConfigManager) : AnnouncerTag<String>(configManager) {
     private val outerRegex = Regex("\\{regionalSuffix:[\\s\\S]*?}}")
@@ -18,7 +18,7 @@ class RegionalSuffixTag(private val configManager: AbstractConfigManager) : Anno
         return outerRegex.containsMatchIn(element) && getInnerTag(outerRegex.find(element)?.value ?: "nothing") != null
     }
 
-    override fun getData(tag: String, user: IUser, guild: IGuild): String {
+    override fun getData(tag: String, user: User, guild: Guild): String {
         val innerTagStringRep = innerRegex.find(tag)?.value
         val innerTag = getInnerTag(tag)
 
@@ -34,7 +34,7 @@ class RegionalSuffixTag(private val configManager: AbstractConfigManager) : Anno
         return NumericTag.new(innerRegex.find(outerTag)?.value ?: "nothing")
     }
 
-    override fun initializeSettings(tag: String, guild: IGuild) {
+    override fun initializeSettings(tag: String, guild: Guild) {
         val innerTagStringRep = innerRegex.find(tag)?.value
         val innerTag = getInnerTag(tag)
 

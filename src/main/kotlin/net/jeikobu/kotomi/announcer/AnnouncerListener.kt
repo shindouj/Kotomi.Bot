@@ -1,81 +1,76 @@
 package net.jeikobu.kotomi.announcer
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.User
+import net.dv8tion.jda.core.events.Event
+import net.dv8tion.jda.core.events.guild.GuildBanEvent
+import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent
+import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent
+import net.dv8tion.jda.core.hooks.EventListener
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.GuildConfigKeys
 import net.jeikobu.kotomi.announcer.tag.TagManager
-import sx.blah.discord.api.events.EventSubscriber
-import sx.blah.discord.handle.impl.events.guild.member.UserBanEvent
-import sx.blah.discord.handle.impl.events.guild.member.UserJoinEvent
-import sx.blah.discord.handle.impl.events.guild.member.UserLeaveEvent
-import sx.blah.discord.handle.obj.IChannel
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
-import java.lang.NullPointerException
+import java.lang.IllegalArgumentException
 
-class AnnouncerListener(private val configManager: AbstractConfigManager) {
-    private fun getAnnouncementChannel(guild: IGuild): IChannel {
-        val channelName = configManager.getGuildConfig(guild)
-                .getValue(AnnouncerConfigKeys.ANNOUNCER_CHANNEL.configKey, String::class.java)
+class AnnouncerListener(private val configManager: AbstractConfigManager) : EventListener {
+    private fun getAnnouncementChannel(guild: Guild): TextChannel {
+        val channelName: String? = configManager.getGuildConfig(guild).getValue(AnnouncerConfigKeys.ANNOUNCER_CHANNEL.configKey)
 
-        return if (channelName.isPresent) {
-            guild.getChannelsByName(channelName.get()).first()
+        return if (channelName != null) {
+            guild.getTextChannelsByName(channelName, true).first()
         } else {
-            guild.defaultChannel
+            guild.systemChannel ?: throw IllegalArgumentException()
         }
     }
 
-    private fun prepareAnnouncement(announcement: String, user: IUser, guild: IGuild, channel: IChannel): String {
+    private fun prepareAnnouncement(announcement: String, user: User, guild: Guild): String {
         return TagManager.processMessage(announcement, user, guild)
     }
 
-    private fun sendAnnouncement(announcementEvent: Announcements, guild: IGuild, user: IUser) {
+    private fun sendAnnouncement(announcementEvent: Announcements, guild: Guild, user: User) {
         val guildConfig = configManager.getGuildConfig(guild)
-        val isEnabled = guildConfig.getValue(
-            announcementEvent.announcementName + AnnouncerConfigKeys.ANNOUNCER_ENABLED.configKey, String::class.java)
+        val isEnabled: Boolean? = guildConfig.getValue(
+            announcementEvent.announcementName + AnnouncerConfigKeys.ANNOUNCER_ENABLED.configKey)
 
-        if (isEnabled.isPresent && isEnabled.get() == "true") {
-            val announcement = configManager.getGuildConfig(guild)
-                    .getValue(announcementEvent.announcementName + AnnouncerConfigKeys.ANNOUNCEMENT.configKey,
-                              String::class.java)
-            if (announcement.isPresent) {
+        if (isEnabled != null && isEnabled) {
+            val announcement: String? = configManager.getGuildConfig(guild)
+                    .getValue(announcementEvent.announcementName + AnnouncerConfigKeys.ANNOUNCEMENT.configKey)
+            if (announcement != null) {
                 val announcementChannel = getAnnouncementChannel(guild)
-                announcementChannel.sendMessage(
-                    prepareAnnouncement(announcement.get(), user, guild, announcementChannel))
+                announcementChannel.sendMessage(prepareAnnouncement(announcement, user, guild)).queue()
             }
         }
     }
 
-    fun incrementCounters(guild: IGuild) {
+    fun incrementCounters(guild: Guild) {
         val guildConfig = configManager.getGuildConfig(guild)
 
-        val userJoinCounter = guildConfig.getValue(GuildConfigKeys.USER_JOIN_COUNTER.key, Int::class.java)
-        if (userJoinCounter.isPresent) {
-            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, (userJoinCounter.get() + 1).toString())
+        val userJoinCounter: Int? = guildConfig.getValue(GuildConfigKeys.USER_JOIN_COUNTER.key)
+        if (userJoinCounter != null) {
+            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, (userJoinCounter + 1).toString())
         } else {
-            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, guild.totalMemberCount.toString())
+            guildConfig.setValue(GuildConfigKeys.USER_JOIN_COUNTER.key, guild.members.size.toString())
         }
 
-        val customUserCounter = guildConfig.getValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, Int::class.java)
-        if (customUserCounter.isPresent) {
-            guildConfig.setValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, (customUserCounter.get() + 1).toString())
+        val customUserCounter: Int? = guildConfig.getValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key)
+        if (customUserCounter != null) {
+            guildConfig.setValue(GuildConfigKeys.CUSTOM_USER_COUNTER.key, (customUserCounter + 1).toString())
         }
     }
 
-    @EventSubscriber
-    fun onUserJoin(e: UserJoinEvent) {
-        incrementCounters(e.guild)
-        sendAnnouncement(Announcements.ANNOUNCEMENT_JOIN, e.guild, e.user)
+    override fun onEvent(event: Event) {
+        when {
+            event is GuildMemberJoinEvent -> {
+                incrementCounters(event.guild)
+                sendAnnouncement(Announcements.ANNOUNCEMENT_JOIN, event.guild, event.user)
+            }
+            event is GuildMemberLeaveEvent -> {
+                sendAnnouncement(Announcements.ANNOUNCEMENT_LEAVE, event.guild, event.user)
+            }
+            event is GuildBanEvent -> {
+                sendAnnouncement(Announcements.ANNOUNCEMENT_BAN, event.guild, event.user)
+            }
+        }
     }
-
-    @EventSubscriber
-    fun onUserLeave(e: UserLeaveEvent) {
-        sendAnnouncement(Announcements.ANNOUNCEMENT_LEAVE, e.guild, e.user)
-    }
-
-    @EventSubscriber
-    fun onUserBan(e: UserBanEvent) {
-        sendAnnouncement(Announcements.ANNOUNCEMENT_BAN, e.guild, e.user)
-    }
-
-
 }
