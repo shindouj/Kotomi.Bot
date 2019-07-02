@@ -2,11 +2,14 @@ package net.jeikobu.kotomi
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import net.jeikobu.jbase.command.AbstractCommand
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.jbase.config.AbstractGuildConfig
 import net.jeikobu.jbase.config.IGlobalConfig
 import net.jeikobu.jbase.impl.config.DBGuildConfig
 import net.jeikobu.jbase.impl.config.YAMLGlobalConfig
+import net.jeikobu.kotomi.reactionroles.ReactionConfig
+import net.jeikobu.kotomi.reactionroles.RegisterMessageCommand
 import net.jeikobu.kotomi.scrambler.ScramblerTask
 import org.pmw.tinylog.Logger
 import sx.blah.discord.api.ClientBuilder
@@ -18,26 +21,22 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 private val clientBuilder = ClientBuilder()
+val hikariDS = HikariDataSource(HikariConfig("config/hikari.properties"))
 
 private val kotomi = KotomiBot(clientBuilder, object: AbstractConfigManager() {
-    val hikariDS = HikariDataSource(HikariConfig("config/hikari.properties"))
-    val globalConfig = YAMLGlobalConfig()
-
-    override fun getGlobalConfig(): IGlobalConfig {
-        return globalConfig
-    }
-
-    override fun getGuildConfig(guild: IGuild?): AbstractGuildConfig {
-        if (guild == null) throw IllegalArgumentException()
-        return DBGuildConfig(guild, hikariDS)
-    }
+    override val globalConfig = YAMLGlobalConfig()
+    override fun getGuildConfig(guild: IGuild): AbstractGuildConfig = DBGuildConfig(guild, hikariDS)
 })
+
+fun <T : AbstractCommand> T.getReactionConfig(): ReactionConfig {
+    return kotomi.reactionConfig
+}
 
 fun getVersion(): String {
     return kotomi.javaClass.`package`.implementationVersion ?: "Dev"
 }
 
-fun main(args: Array<String>) {
+fun main() {
     kotomi.client.login()
     kotomi.registerCommands()
 

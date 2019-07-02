@@ -10,16 +10,16 @@ import sx.blah.discord.handle.obj.Permissions
 
 @Command(name = "announcer", argsLength = 2, permissions = [Permissions.ADMINISTRATOR])
 class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
-    private val announcerName = if (args.size > 0) { args[0]?.toLowerCase() } else { "" }
+    private val announcerName = if (args.isNotEmpty()) { args[0].toLowerCase() } else { "" }
 
-    override fun run(message: IMessage?) {
+    override fun run(message: IMessage) {
         // not using announcerName to denote that it's not about the announcer name but an exceptional command
         if (args[0].toLowerCase() == "setchannel") {
             setChannel()
             return
         }
 
-        if (!Announcements.values().map { it -> it.announcementName }.contains(announcerName)) {
+        if (!Announcements.values().map { it.announcementName }.contains(announcerName)) {
             destinationChannel.sendMessage(getLocalized("unsupportedAnnouncement", announcerName))
             return
         }

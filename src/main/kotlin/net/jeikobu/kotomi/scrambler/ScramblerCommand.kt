@@ -9,8 +9,8 @@ import sx.blah.discord.handle.obj.Permissions
 import java.util.*
 
 @Command(name = "scrambleRoles", argsLength = 1, permissions = [Permissions.ADMINISTRATOR])
-class ScramblerCommand(data: CommandData?) : AbstractCommand(data) {
-    override fun run(message: IMessage?) {
+class ScramblerCommand(data: CommandData) : AbstractCommand(data) {
+    override fun run(message: IMessage) {
         when (args[0]) {
             "enable" -> setEnabled(true)
             "disable" -> setEnabled(false)

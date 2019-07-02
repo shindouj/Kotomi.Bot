@@ -11,7 +11,7 @@ import net.jeikobu.kotomi.scrambler.ScramblerKeys.*
 class ScramblerListener(private val configManager: AbstractConfigManager) {
     companion object {
         private fun IRole.getMemberCount(): Int {
-            return guild.users.count { it -> it.hasRole(this) }
+            return guild.users.count { it.hasRole(this) }
         }
 
         private fun getRoleList(configMap: Map<ScramblerKeys, String>, guild: IGuild): List<IRole> {
@@ -31,7 +31,7 @@ class ScramblerListener(private val configManager: AbstractConfigManager) {
 
             if (scramblerMode != null) {
                 var roleList = getRoleList(configMap, guild)
-                val roleListInCurrentOrder: List<IRole> = guild.roles.mapNotNull { it: IRole ->
+                val roleListInCurrentOrder: List<IRole> = guild.roles.mapNotNull {
                     if (roleList.contains(it)) {
                         it
                     } else {
@@ -41,7 +41,7 @@ class ScramblerListener(private val configManager: AbstractConfigManager) {
 
                 roleList = when (ScramblerMode.fromName(scramblerMode)) {
                     ScramblerMode.MODE_MEMBER_COUNT -> {
-                        roleList.sortedBy { it -> it.getMemberCount() }
+                        roleList.sortedBy { it.getMemberCount() }
                     }
                     ScramblerMode.MODE_RANDOM -> {
                         roleList.shuffled()
@@ -66,7 +66,7 @@ class ScramblerListener(private val configManager: AbstractConfigManager) {
         val configMap: Map<ScramblerKeys, String> = ScramblerConfig(configManager.getGuildConfig(e.guild)).configMap
 
         if (configMap[SCRAMBLER_ENABLED] != null
-                && configMap[SCRAMBLER_ENABLED]!!.toBoolean()
+                && configMap.getValue(SCRAMBLER_ENABLED).toBoolean()
                 && configMap[SCRAMBLER_INTERVAL] != null
                 && ScramblerInterval.fromString(configMap[SCRAMBLER_INTERVAL].toString()).type == ScramblerIntervalType.EVERY_MEMBER_JOIN_EVENT) {
             scrambleRoles(configMap, e.guild)

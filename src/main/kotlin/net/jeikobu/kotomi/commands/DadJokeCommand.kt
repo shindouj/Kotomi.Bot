@@ -10,9 +10,9 @@ import sx.blah.discord.util.EmbedBuilder
 import java.awt.Color
 
 @Command(name = "dadJoke", argsLength = 0)
-class DadJokeCommand(data: CommandData?) : AbstractCommand(data) {
-    override fun run(message: IMessage?) {
-        if (args.size > 0 && args[0] != null) {
+class DadJokeCommand(data: CommandData) : AbstractCommand(data) {
+    override fun run(message: IMessage) {
+        if (args.isNotEmpty()) {
             sendEmbed(args[0])
         } else {
             sendEmbed()
