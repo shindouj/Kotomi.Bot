@@ -1,9 +1,9 @@
 package net.jeikobu.kotomi.announcer.tag.impl.string
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.User
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.announcer.tag.AnnouncerTag
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
 
 class UserNameTag(configManager: AbstractConfigManager) : AnnouncerTag<String>(configManager) {
     private val optionsRegex = Regex("(?<=\\{userName:)(.*)(?=})")
@@ -12,13 +12,13 @@ class UserNameTag(configManager: AbstractConfigManager) : AnnouncerTag<String>(c
         return Regex("\\{userName[\\s\\S]*?}")
     }
 
-    override fun getData(tag: String, user: IUser, guild: IGuild): String {
+    override fun getData(tag: String, user: User, guild: Guild): String {
         val options = splitOptions(optionsRegex.find(tag)?.value ?: "")
 
         return if (options["noMention"] != null && options["noMention"] == "true") {
             user.name
         } else {
-            user.mention()
+            user.asMention
         }
     }
 }

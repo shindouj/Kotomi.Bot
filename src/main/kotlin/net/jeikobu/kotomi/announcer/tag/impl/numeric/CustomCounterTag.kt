@@ -1,9 +1,9 @@
 package net.jeikobu.kotomi.announcer.tag.impl.numeric
 
+import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.User
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.announcer.tag.NumericTag
-import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
 import java.lang.NumberFormatException
 
 class CustomCounterTag(private val configManager: AbstractConfigManager) : NumericTag(configManager) {
@@ -17,17 +17,11 @@ class CustomCounterTag(private val configManager: AbstractConfigManager) : Numer
         return Regex("\\{counter[\\s\\S]*?}")
     }
 
-    override fun getData(tag: String, user: IUser, guild: IGuild): Int {
-        val data = configManager.getGuildConfig(guild).getValue(configKey, Int::class.java)
-
-        if (data.isPresent) {
-            return data.get()
-        } else {
-            throw UninitializedPropertyAccessException()
-        }
+    override fun getData(tag: String, user: User, guild: Guild): Int {
+        return configManager.getGuildConfig(guild).getValue(configKey) ?: throw UninitializedPropertyAccessException()
     }
 
-    override fun initializeSettings(tag: String, guild: IGuild) {
+    override fun initializeSettings(tag: String, guild: Guild) {
         val optionsMap = splitOptions(optionsRegex.find(tag)?.value?.replace("}", "") ?: "")
 
         val initWithCurrentUserCount = optionsMap["initWithUserCount"]?.toLowerCase() ?: "false" == "true"
@@ -35,7 +29,7 @@ class CustomCounterTag(private val configManager: AbstractConfigManager) : Numer
         val startStr = optionsMap["start"]
 
         if (initWithCurrentUserCount) {
-            configManager.getGuildConfig(guild).setValue(configKey, guild.totalMemberCount.toString())
+            configManager.getGuildConfig(guild).setValue(configKey, guild.members.size.toString())
             return
         }
 
@@ -46,7 +40,7 @@ class CustomCounterTag(private val configManager: AbstractConfigManager) : Numer
             } catch (e: NumberFormatException) {
                 configManager.getGuildConfig(guild).setValue(configKey, "0")
             }
-        } else if (reset || !configManager.getGuildConfig(guild).getValue(configKey, String::class.java).isPresent) {
+        } else if (reset || configManager.getGuildConfig(guild).getValue(configKey, valueType = String::class) == null) {
             configManager.getGuildConfig(guild).setValue(configKey, "0")
         }
     }

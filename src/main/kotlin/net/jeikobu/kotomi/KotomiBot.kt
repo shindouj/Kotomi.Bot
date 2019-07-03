@@ -1,7 +1,5 @@
 package net.jeikobu.kotomi
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import net.jeikobu.jbase.AbstractBot
 import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.kotomi.announcer.AnnouncerConfigCommand
@@ -20,12 +18,8 @@ import net.jeikobu.kotomi.reactionroles.ReactionListener
 import net.jeikobu.kotomi.reactionroles.RegisterMessageCommand
 import net.jeikobu.kotomi.scrambler.ScramblerCommand
 import net.jeikobu.kotomi.scrambler.ScramblerListener
-import net.jeikobu.kotomi.scrambler.ScramblerTask
-import sx.blah.discord.api.ClientBuilder
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
-class KotomiBot(clientBuilder: ClientBuilder?, configManager: AbstractConfigManager?) : AbstractBot(clientBuilder, configManager) {
+class KotomiBot(val configManager: AbstractConfigManager) : AbstractBot(configManager) {
     val reactionConfig = ReactionConfig(hikariDS)
 
     fun registerCommands() {
@@ -35,16 +29,17 @@ class KotomiBot(clientBuilder: ClientBuilder?, configManager: AbstractConfigMana
         TagManager.registerTag(ServerNameTag(configManager))
         TagManager.registerTag(UserNameTag(configManager))
 
-        client.dispatcher.registerListener(AnnouncerListener(configManager))
-        client.dispatcher.registerListener(ScramblerListener(configManager))
-        client.dispatcher.registerListener(ReactionListener(configManager, reactionConfig))
+        client.addEventListener(AnnouncerListener(configManager))
+        client.addEventListener(ScramblerListener(configManager))
+        client.addEventListener(ReactionListener(configManager, reactionConfig))
 
-        commandManager.registerCommand(AboutCommand::class.java)
-        commandManager.registerCommand(AnnouncerConfigCommand::class.java)
-        commandManager.registerCommand(ScramblerCommand::class.java)
-        commandManager.registerCommand(DadJokeCommand::class.java)
-        commandManager.registerCommand(RegisterMessageCommand::class.java)
-        commandManager.registerCommand(AddReactionRoleCommand::class.java)
+
+        commandManager.registerCommand(AboutCommand::class)
+        commandManager.registerCommand(AnnouncerConfigCommand::class)
+        commandManager.registerCommand(ScramblerCommand::class)
+        commandManager.registerCommand(DadJokeCommand::class)
+        commandManager.registerCommand(RegisterMessageCommand::class)
+        commandManager.registerCommand(AddReactionRoleCommand::class)
     }
 }
 
