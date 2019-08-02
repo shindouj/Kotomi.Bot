@@ -12,6 +12,9 @@ import java.lang.Exception
 import java.lang.NumberFormatException
 
 @Command(name = "addRole", argsLength = 2, permissions = [Permission.ADMINISTRATOR])
+
+private const val noMessageErrorCode = 10008
+
 class AddReactionRoleCommand(data: CommandData) : AbstractCommand(data) {
     override fun run(message: Message) {
         var reactionMessage: Message? = null
@@ -20,7 +23,9 @@ class AddReactionRoleCommand(data: CommandData) : AbstractCommand(data) {
             reactionMessage = try {
                 channel.getMessageById(getVolatile(RRVolatileKeys.LAST_MESSAGE.name)?.toLong() ?: 0L).complete()
             } catch (e: ErrorResponseException) {
-                destinationChannel.sendMessage(getLocalized("discordError", e.errorResponse.code, e.errorResponse.meaning)).queue()
+                if (e.errorResponse.code != noMessageErrorCode) {
+                    destinationChannel.sendMessage(getLocalized("discordError", e.errorResponse.code, e.errorResponse.meaning)).queue()
+                }
                 null
             } catch (e: Exception) {
                 destinationChannel.sendMessage(getLocalized("generalError", e.localizedMessage)).queue()
@@ -35,7 +40,11 @@ class AddReactionRoleCommand(data: CommandData) : AbstractCommand(data) {
         val role = try {
             destinationGuild.getRoleById(args[0].toLong())
         } catch (e: NumberFormatException) {
-            destinationGuild.getRolesByName(args[0], false).first()
+            try {
+                destinationGuild.getRolesByName(args[0], false).first()
+            } catch (e: Exception) {
+                null
+            }
         }
 
         val emojiId = try {
@@ -55,6 +64,8 @@ class AddReactionRoleCommand(data: CommandData) : AbstractCommand(data) {
             reactionMessage.addReaction(emoji).complete()
 
             destinationChannel.sendMessage(getLocalized("success")).queue()
+        } else {
+            destinationChannel.sendMessage(getLocalized("failure")).queue()
         }
     }
 }

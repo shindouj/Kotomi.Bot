@@ -11,6 +11,9 @@ import java.lang.Exception
 import java.lang.NumberFormatException
 
 @Command(name = "reactionRole", argsLength = 2, permissions = [Permission.ADMINISTRATOR])
+
+private const val noMessageErrorCode = 10008
+
 class RegisterMessageCommand(data: CommandData) : AbstractCommand(data) {
     override fun run(message: Message) {
         val reactionConfig = getReactionConfig()
@@ -28,7 +31,9 @@ class RegisterMessageCommand(data: CommandData) : AbstractCommand(data) {
             reactionMessage = try {
                 channel.getMessageById(reactionMessageID).complete()
             } catch (e: ErrorResponseException) {
-                destinationChannel.sendMessage(getLocalized("discordError", e.errorResponse.code, e.errorResponse.meaning)).queue()
+                if (e.errorResponse.code != noMessageErrorCode) {
+                    destinationChannel.sendMessage(getLocalized("discordError", e.errorResponse.code, e.errorResponse.meaning)).queue()
+                }
                 null
             } catch (e: Exception) {
                 destinationChannel.sendMessage(getLocalized("generalError", e.localizedMessage)).queue()
