@@ -1,23 +1,32 @@
 package net.jeikobu.kotomi.reactionroles
 
+import net.dv8tion.jda.core.events.Event
+import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
+import net.dv8tion.jda.core.events.message.react.MessageReactionRemoveEvent
+import net.dv8tion.jda.core.hooks.EventListener
 import net.jeikobu.jbase.config.AbstractConfigManager
-import sx.blah.discord.api.events.EventSubscriber
-import sx.blah.discord.handle.impl.events.guild.channel.message.reaction.ReactionAddEvent
-import sx.blah.discord.handle.impl.events.guild.channel.message.reaction.ReactionRemoveEvent
 
-class ReactionListener(private val configManager: AbstractConfigManager, private val reactionConfig: ReactionConfig) {
-    @EventSubscriber
-    fun onReactionAddEvent(e: ReactionAddEvent) {
+class ReactionListener(private val configManager: AbstractConfigManager, private val reactionConfig: ReactionConfig): EventListener {
+    override fun onEvent(event: Event?) {
+        when (event) {
+            is MessageReactionAddEvent -> onReactionAddEvent(event)
+            is MessageReactionRemoveEvent -> onReactionRemoveEvent(event)
+        }
+    }
+
+    fun onReactionAddEvent(e: MessageReactionAddEvent) {
+        if (e.user.isBot) return
+
         val guild = e.guild
-        val message = e.message
+        val message = e.channel.getMessageById(e.messageIdLong).complete()
         val reaction = e.reaction
-        val user = e.user
+        val member = e.member
 
         if (reactionConfig.isMessageRegistered(message)) {
             val role = reactionConfig.getRole(message, reaction, guild)
 
-            if (!user.hasRole(role)) {
-                user.addRole(role)
+            if (!member.roles.contains(role)) {
+                guild.controller.addRolesToMember(member, role).complete()
             }
 
             when (reactionConfig.getMode(message)) {
@@ -25,31 +34,31 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
                 }
 
                 ReactionMessageTypes.TOGGLE -> {
-                    message.reactions.mapNotNull { if (it.users.contains(user) && it.emoji != reaction.emoji) it else null }.forEach {
-                        message.removeReaction(user, it)
+                    message.reactions.mapNotNull { if (it.users.contains(member.user) && it.reactionEmote != reaction.reactionEmote) it else null }.forEach {
+                        it.removeReaction(member.user).queue()
                     }
                 }
 
                 ReactionMessageTypes.ONETIME -> {
-                    message.removeReaction(user, reaction)
+                    reaction.removeReaction(member.user).queue()
                 }
             }
-            user.addRole(role)
         }
     }
 
-    @EventSubscriber
-    fun onReactionRemoveEvent(e: ReactionRemoveEvent) {
-        val guild = e.guild
-        val message = e.message
-        val reaction = e.reaction
-        val user = e.user
+    fun onReactionRemoveEvent(e: MessageReactionRemoveEvent) {
+        if (e.user.isBot) return
 
-        if (reactionConfig.isMessageRegistered(message)) {
+        val guild = e.guild
+        val message = e.channel.getMessageById(e.messageIdLong).complete()
+        val reaction = e.reaction
+        val member = e.member
+
+        if (reactionConfig.isMessageRegistered(message) && reactionConfig.getMode(message) != ReactionMessageTypes.ONETIME) {
             val role = reactionConfig.getRole(message, reaction, guild)
 
-            if (user.hasRole(role)) {
-                user.removeRole(role)
+            if (member.roles.contains(role)) {
+                guild.controller.removeRolesFromMember(member, role).complete()
             }
         }
     }

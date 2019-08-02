@@ -1,11 +1,11 @@
 package net.jeikobu.kotomi.reactionroles
 
+import net.dv8tion.jda.core.entities.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
-import sx.blah.discord.handle.obj.*
 import java.lang.Exception
 import javax.sql.DataSource
 
@@ -25,52 +25,52 @@ class ReactionConfig(dataSource: DataSource) {
         val reactionEmojiID = long("reactionEmojiID")
     }
 
-    fun registerMessage(message: IMessage, setting: ReactionMessageTypes) {
+    fun registerMessage(message: Message, setting: ReactionMessageTypes) {
         transaction(db) {
             create(ReactionMessage)
 
             ReactionMessage.insertOrUpdate(ReactionMessage.setting) {
-                it[ReactionMessage.messageID] = message.longID
+                it[ReactionMessage.messageID] = message.idLong
                 it[ReactionMessage.setting] = setting
             }
         }
     }
 
-    fun isMessageRegistered(message: IMessage): Boolean {
+    fun isMessageRegistered(message: Message): Boolean {
         return transaction(db) {
             create(ReactionMessage)
-            ReactionMessage.select { ReactionMessage.messageID eq message.longID }.count() > 0
+            ReactionMessage.select { ReactionMessage.messageID eq message.idLong }.count() > 0
         }
     }
 
-    fun getRole(message: IMessage, reaction: IReaction, guild: IGuild): IRole {
+    fun getRole(message: Message, reaction: MessageReaction, guild: Guild): Role {
         return transaction(db) {
             create(ReactionMessage)
             create(RoleToReactionMessage)
 
-            guild.getRoleByID(RoleToReactionMessage.select {
-                (RoleToReactionMessage.message eq message.longID) and (RoleToReactionMessage.reactionEmojiID eq reaction.emoji.longID)
+            guild.getRoleById(RoleToReactionMessage.select {
+                (RoleToReactionMessage.message eq message.idLong) and (RoleToReactionMessage.reactionEmojiID eq reaction.reactionEmote.idLong)
             }.first()[RoleToReactionMessage.role])
         }
     }
 
-    fun getMode(message: IMessage): ReactionMessageTypes {
+    fun getMode(message: Message): ReactionMessageTypes {
         return transaction(db) {
             create(ReactionMessage)
-            ReactionMessage.select{ ReactionMessage.messageID eq message.longID }.first()[ReactionMessage.setting]
+            ReactionMessage.select{ ReactionMessage.messageID eq message.idLong }.first()[ReactionMessage.setting]
         }
     }
 
-    fun addReactionRole(message: IMessage, role: IRole, emoji: IEmoji) {
+    fun addReactionRole(message: Message, role: Role, emoji: Emote) {
         transaction(db) {
             create(ReactionMessage)
             create(RoleToReactionMessage)
 
             if (this@ReactionConfig.isMessageRegistered(message)) {
                 return@transaction RoleToReactionMessage.insertOrUpdate(RoleToReactionMessage.reactionEmojiID) {
-                    it[RoleToReactionMessage.message] = message.longID
-                    it[RoleToReactionMessage.role] = role.longID
-                    it[RoleToReactionMessage.reactionEmojiID] = emoji.longID
+                    it[RoleToReactionMessage.message] = message.idLong
+                    it[RoleToReactionMessage.role] = role.idLong
+                    it[RoleToReactionMessage.reactionEmojiID] = emoji.idLong
                 }
             } else {
                 throw ReactionConfigException("Message not registered!")
