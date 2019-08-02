@@ -1,26 +1,25 @@
 package net.jeikobu.kotomi.announcer
 
+import net.dv8tion.jda.core.Permission
+import net.dv8tion.jda.core.entities.Message
 import net.jeikobu.jbase.command.AbstractCommand
 import net.jeikobu.jbase.command.Command
 import net.jeikobu.jbase.command.CommandData
-import net.jeikobu.kotomi.GuildConfigKeys
 import net.jeikobu.kotomi.announcer.tag.TagManager
-import sx.blah.discord.handle.obj.IMessage
-import sx.blah.discord.handle.obj.Permissions
 
-@Command(name = "announcer", argsLength = 2, permissions = [Permissions.ADMINISTRATOR])
+@Command(name = "announcer", argsLength = 2, permissions = [Permission.ADMINISTRATOR])
 class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
-    private val announcerName = if (args.size > 0) { args[0]?.toLowerCase() } else { "" }
+    private val announcerName = if (args.isNotEmpty()) { args[0].toLowerCase() } else { "" }
 
-    override fun run(message: IMessage?) {
+    override fun run(message: Message) {
         // not using announcerName to denote that it's not about the announcer name but an exceptional command
         if (args[0].toLowerCase() == "setchannel") {
             setChannel()
             return
         }
 
-        if (!Announcements.values().map { it -> it.announcementName }.contains(announcerName)) {
-            destinationChannel.sendMessage(getLocalized("unsupportedAnnouncement", announcerName))
+        if (!Announcements.values().map { it.announcementName }.contains(announcerName)) {
+            destinationChannel.sendMessage(getLocalized("unsupportedAnnouncement", announcerName)).queue()
             return
         }
 
@@ -35,30 +34,30 @@ class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
         val channelConfigKey = AnnouncerConfigKeys.ANNOUNCER_CHANNEL.configKey
 
         try {
-            guildConfig.setValue(channelConfigKey, destinationGuild.getChannelByID(args[1].toLong()).name)
+            guildConfig.setValue(channelConfigKey, destinationGuild.getTextChannelById(args[1].toLong()).name)
         } catch (e: NumberFormatException) {
-            val searchResults = destinationGuild.getChannelsByName(args[1])
+            val searchResults = destinationGuild.getTextChannelsByName(args[1], true)
 
             if (searchResults.isNotEmpty()) {
                 if (searchResults.size > 1) {
-                    destinationChannel.sendMessage(getLocalized("ambiguousChannelName", args[1]))
+                    destinationChannel.sendMessage(getLocalized("ambiguousChannelName", args[1])).queue()
                     return
                 }
 
                 guildConfig.setValue(channelConfigKey, searchResults.first().name)
             } else {
-                destinationChannel.sendMessage(getLocalized("channelNotFound", args[1]))
+                destinationChannel.sendMessage(getLocalized("channelNotFound", args[1])).queue()
                 return
             }
         }
 
-        destinationChannel.sendMessage(getLocalized("channelSet", args[1]))
+        destinationChannel.sendMessage(getLocalized("channelSet", args[1])).queue()
     }
 
     private fun setAnnouncerEnabled(enabled: Boolean) {
         guildConfig.setValue(announcerName + AnnouncerConfigKeys.ANNOUNCER_ENABLED.configKey, enabled.toString())
         destinationChannel.sendMessage(
-            getLocalized("announcementEnabled", getLocalized(announcerName), getLocalized(enabled.toString())))
+            getLocalized("announcementEnabled", getLocalized(announcerName), getLocalized(enabled.toString()))).queue()
     }
 
     private fun setAnnouncer() {
@@ -66,7 +65,7 @@ class AnnouncerConfigCommand(data: CommandData) : AbstractCommand(data) {
 
         TagManager.initializeAnnouncement(announcement, destinationGuild)
         guildConfig.setValue(announcerName + AnnouncerConfigKeys.ANNOUNCEMENT.configKey, announcement)
-        destinationChannel.sendMessage(getLocalized("announcementSet", getLocalized(announcerName), announcement))
+        destinationChannel.sendMessage(getLocalized("announcementSet", getLocalized(announcerName), announcement)).queue()
     }
 
     override fun usageMessage(): String {
