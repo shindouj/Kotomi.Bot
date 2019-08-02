@@ -10,10 +10,9 @@ import net.jeikobu.kotomi.getReactionConfig
 import java.lang.Exception
 import java.lang.NumberFormatException
 
-@Command(name = "reactionRole", argsLength = 2, permissions = [Permission.ADMINISTRATOR])
-
 private const val noMessageErrorCode = 10008
 
+@Command(name = "reactionRole", argsLength = 2, permissions = [Permission.ADMINISTRATOR])
 class RegisterMessageCommand(data: CommandData) : AbstractCommand(data) {
     override fun run(message: Message) {
         val reactionConfig = getReactionConfig()
