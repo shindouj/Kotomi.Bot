@@ -22,7 +22,17 @@ class ReactionConfig(dataSource: DataSource) {
     object RoleToReactionMessage : Table() {
         val message = reference("reactionMessage", ReactionMessage.messageID).primaryKey(0)
         val role = long("roleID").primaryKey(1)
-        val reactionEmojiID = long("reactionEmojiID")
+        val reactionEmojiID = reference("emoteID", Emoji.emojiID)
+    }
+
+    object Emoji : Table() {
+        val emojiID = integer("emojiID").autoIncrement().primaryKey()
+        val discordEmoteID = long("discordEmoteID").nullable()
+        val emojiName = varchar("emojiName", 64)
+
+        init {
+            uniqueIndex(discordEmoteID, emojiName)
+        }
     }
 
     fun registerMessage(message: Message, setting: ReactionMessageTypes) {
@@ -48,8 +58,14 @@ class ReactionConfig(dataSource: DataSource) {
             create(ReactionMessage)
             create(RoleToReactionMessage)
 
+            val emojiID = if (reaction.reactionEmote.isEmote) {
+                Emoji.select { Emoji.discordEmoteID eq reaction.reactionEmote.idLong }.first()[Emoji.emojiID]
+            } else {
+                Emoji.select { Emoji.emojiName eq reaction.reactionEmote.name }.first()[Emoji.emojiID]
+            }
+
             guild.getRoleById(RoleToReactionMessage.select {
-                (RoleToReactionMessage.message eq message.idLong) and (RoleToReactionMessage.reactionEmojiID eq reaction.reactionEmote.idLong)
+                (RoleToReactionMessage.message eq message.idLong) and (RoleToReactionMessage.reactionEmojiID eq emojiID)
             }.first()[RoleToReactionMessage.role])
         }
     }
@@ -62,6 +78,16 @@ class ReactionConfig(dataSource: DataSource) {
     }
 
     fun addReactionRole(message: Message, role: Role, emoji: Emote) {
+        val emojiID = addEmoji(emoji)
+        addReactionRoleImpl(message, role, emojiID)
+    }
+
+    fun addReactionRole(message: Message, role: Role, emoteName: String) {
+        val emojiID = addEmoji(emoteName)
+        addReactionRoleImpl(message, role, emojiID)
+    }
+
+    private fun addReactionRoleImpl(message: Message, role: Role, emojiID: Int) {
         transaction(db) {
             create(ReactionMessage)
             create(RoleToReactionMessage)
@@ -70,11 +96,35 @@ class ReactionConfig(dataSource: DataSource) {
                 return@transaction RoleToReactionMessage.insertOrUpdate(RoleToReactionMessage.reactionEmojiID) {
                     it[RoleToReactionMessage.message] = message.idLong
                     it[RoleToReactionMessage.role] = role.idLong
-                    it[RoleToReactionMessage.reactionEmojiID] = emoji.idLong
+                    it[RoleToReactionMessage.reactionEmojiID] = emojiID
                 }
             } else {
                 throw ReactionConfigException("Message not registered!")
             }
+        }
+    }
+
+    fun addEmoji(emote: Emote): Int {
+        return transaction(db) {
+            create(Emoji)
+            Emoji.insertOrUpdate {
+                it[discordEmoteID] = emote.idLong
+                it[emojiName] = emote.name
+            }
+
+            Emoji.select { Emoji.discordEmoteID eq emote.idLong }.first()[Emoji.emojiID]
+        }
+    }
+
+    fun addEmoji(name: String): Int {
+        return transaction(db) {
+            create(Emoji)
+            Emoji.insertOrUpdate {
+                it[discordEmoteID] = null
+                it[emojiName] = name
+            }
+
+            Emoji.select { Emoji.emojiName eq name }.first()[Emoji.emojiID]
         }
     }
 }
