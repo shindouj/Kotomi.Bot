@@ -56,11 +56,22 @@ class AddReactionRoleCommand(data: CommandData) : AbstractCommand(data) {
             }
         }
 
-        val emoji = destinationGuild.getEmoteById(emojiId)
+        val nameElems = args[1].removePrefix("<").removeSuffix(">").split(":")
 
-        if (reactionMessage != null && role != null && emoji != null) {
-            getReactionConfig().addReactionRole(reactionMessage, role, emoji)
-            reactionMessage.addReaction(emoji).complete()
+        val name = if (nameElems.size > 2) {
+            null
+        } else args[1]
+
+        val emoji = destinationGuild.jda.getEmoteById(emojiId)
+
+        if (reactionMessage != null && role != null && (emoji != null || name != null)) {
+            if (emoji != null) {
+                getReactionConfig().addReactionRole(reactionMessage, role, emoji)
+                reactionMessage.addReaction(emoji).complete()
+            } else if (name != null) {
+                getReactionConfig().addReactionRole(reactionMessage, role, name)
+                reactionMessage.addReaction(name).complete()
+            }
 
             destinationChannel.sendMessage(getLocalized("success")).queue()
         } else {

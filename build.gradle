@@ -25,7 +25,7 @@ sourceCompatibility = 1.8
 
 mainClassName = "net.jeikobu.kotomi.KotomiMainClassKt"
 
-def releaseNumber = "1.0"
+def releaseNumber = "1.1"
 def isSnapshot = false
 
 def buildNumber = "LOCAL_DEV_BUILD"
