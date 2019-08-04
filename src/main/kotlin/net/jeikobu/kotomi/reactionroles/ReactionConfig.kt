@@ -78,12 +78,20 @@ class ReactionConfig(dataSource: DataSource) {
     }
 
     fun addReactionRole(message: Message, role: Role, emoji: Emote) {
-        val emojiID = addEmoji(emoji)
+        val emojiID = try {
+            addEmoji(emoji)
+        } catch (e: Exception) {
+            getEmojiID(emoji)
+        }
         addReactionRoleImpl(message, role, emojiID)
     }
 
     fun addReactionRole(message: Message, role: Role, emoteName: String) {
-        val emojiID = addEmoji(emoteName)
+        val emojiID = try {
+            addEmoji(emoteName)
+        } catch (e: Exception) {
+            getEmojiID(emoteName)
+        }
         addReactionRoleImpl(message, role, emojiID)
     }
 
@@ -101,6 +109,18 @@ class ReactionConfig(dataSource: DataSource) {
             } else {
                 throw ReactionConfigException("Message not registered!")
             }
+        }
+    }
+
+    fun getEmojiID(emote: Emote): Int {
+        return transaction(db) {
+            Emoji.select { Emoji.discordEmoteID eq emote.idLong }.first()[Emoji.emojiID]
+        }
+    }
+
+    fun getEmojiID(name: String): Int {
+        return transaction(db) {
+            Emoji.select { Emoji.emojiName eq name }.first()[Emoji.emojiID]
         }
     }
 

@@ -61,10 +61,7 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
         if (reactionConfig.isMessageRegistered(message)) {
             Logger.debug("${member.effectiveName} reacted to message #${message.id} in ${guild.name} (${reaction.reactionEmote.name})")
             val role = reactionConfig.getRole(message, reaction, guild)
-
-            if (!member.roles.contains(role)) {
-                guild.controller.addRolesToMember(member, role).queue()
-            }
+            guild.controller.addRolesToMember(member, role).queue()
 
             when (reactionConfig.getMode(message)) {
                 ReactionMessageTypes.NORMAL -> {
@@ -103,9 +100,7 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
             Logger.debug("${member.effectiveName} removed a reaction to message #${message.id} in ${guild.name} (${reaction.reactionEmote.name})")
             val role = reactionConfig.getRole(message, reaction, guild)
 
-            if (member.roles.contains(role)) {
-                guild.controller.removeRolesFromMember(member, role).queueAfter(2, TimeUnit.SECONDS)
-            }
+            guild.controller.removeRolesFromMember(member, role).queueAfter(2, TimeUnit.SECONDS)
         }
     }
 
