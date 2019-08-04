@@ -1,6 +1,7 @@
 package net.jeikobu.kotomi.reactionroles
 
 import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.core.entities.Role
 import net.dv8tion.jda.core.events.Event
 import net.dv8tion.jda.core.events.message.react.MessageReactionAddEvent
 import net.dv8tion.jda.core.events.message.react.MessageReactionRemoveEvent
@@ -9,7 +10,6 @@ import net.dv8tion.jda.core.requests.RequestFuture
 import net.jeikobu.jbase.config.AbstractConfigManager
 import org.pmw.tinylog.Logger
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
 class ReactionListener(private val configManager: AbstractConfigManager, private val reactionConfig: ReactionConfig) : EventListener {
     private val requestMap: MutableMap<MessageReactionAddEvent, MutableList<Future<Void>>> = mutableMapOf()
@@ -60,9 +60,11 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
 
         if (reactionConfig.isMessageRegistered(message)) {
             Logger.debug("${member.effectiveName} reacted to message #${message.id} in ${guild.name} (${reaction.reactionEmote.name})")
-            val role = reactionConfig.getRole(message, reaction, guild)
-            guild.controller.addRolesToMember(member, role).queue()
 
+            val rolesToAdd = mutableListOf<Role>()
+            val rolesToRemove = mutableListOf<Role>()
+
+            rolesToAdd += reactionConfig.getRole(message, reaction, guild)
             when (reactionConfig.getMode(message)) {
                 ReactionMessageTypes.NORMAL -> {
                 }
@@ -75,7 +77,7 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
                         if (it.reactionEmote.name != reaction.reactionEmote.name) {
                             val emoteRole = reactionConfig.getRole(message, it, guild)
                             addRequest(e, it.removeReaction(member.user).submit())
-                            guild.controller.removeRolesFromMember(member, emoteRole).queue()
+                            rolesToRemove += emoteRole
                         }
                     }
                 }
@@ -84,6 +86,8 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
                     reaction.removeReaction(member.user).queue()
                 }
             }
+
+            guild.controller.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue()
         }
     }
 
@@ -99,8 +103,7 @@ class ReactionListener(private val configManager: AbstractConfigManager, private
         if (reactionConfig.isMessageRegistered(message) && reactionConfig.getMode(message) == ReactionMessageTypes.NORMAL) {
             Logger.debug("${member.effectiveName} removed a reaction to message #${message.id} in ${guild.name} (${reaction.reactionEmote.name})")
             val role = reactionConfig.getRole(message, reaction, guild)
-
-            guild.controller.removeRolesFromMember(member, role).queueAfter(2, TimeUnit.SECONDS)
+            guild.controller.removeRolesFromMember(member, role).queue()
         }
     }
 
