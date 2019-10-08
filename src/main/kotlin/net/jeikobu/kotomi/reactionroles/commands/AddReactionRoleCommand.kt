@@ -1,13 +1,13 @@
-package net.jeikobu.kotomi.reactionroles
+package net.jeikobu.kotomi.reactionroles.commands
 
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
-import net.dv8tion.jda.core.exceptions.AccountTypeException
 import net.dv8tion.jda.core.exceptions.ErrorResponseException
 import net.jeikobu.jbase.command.AbstractCommand
 import net.jeikobu.jbase.command.Command
 import net.jeikobu.jbase.command.CommandData
 import net.jeikobu.kotomi.getReactionConfig
+import net.jeikobu.kotomi.reactionroles.RRVolatileKeys
 import java.lang.Exception
 import java.lang.NumberFormatException
 

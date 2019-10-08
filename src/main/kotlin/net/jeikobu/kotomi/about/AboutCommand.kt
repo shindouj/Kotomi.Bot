@@ -1,4 +1,4 @@
-package net.jeikobu.kotomi.commands
+package net.jeikobu.kotomi.about
 
 import net.dv8tion.jda.core.entities.Message
 import net.jeikobu.jbase.command.AbstractCommand
