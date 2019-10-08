@@ -1,4 +1,4 @@
-package net.jeikobu.kotomi.commands
+package net.jeikobu.kotomi.dadjoke
 
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.serialization.responseObject

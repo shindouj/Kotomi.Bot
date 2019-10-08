@@ -10,7 +10,6 @@ import net.jeikobu.jbase.config.AbstractConfigManager
 
 class ScramblerListener(private val configManager: AbstractConfigManager) : EventListener {
     companion object {
-
         private fun Role.getMemberCount(): Int {
             return guild.members.count { it.roles.contains(this) }
         }
