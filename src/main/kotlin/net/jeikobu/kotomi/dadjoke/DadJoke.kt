@@ -1,4 +1,4 @@
-package net.jeikobu.kotomi.commands
+package net.jeikobu.kotomi.dadjoke
 
 import kotlinx.serialization.Serializable
 

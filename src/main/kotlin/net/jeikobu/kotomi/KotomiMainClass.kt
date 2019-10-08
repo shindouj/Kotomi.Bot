@@ -11,6 +11,7 @@ import net.jeikobu.jbase.config.AbstractConfigManager
 import net.jeikobu.jbase.config.AbstractGuildConfig
 import net.jeikobu.jbase.impl.config.DBGuildConfig
 import net.jeikobu.jbase.impl.config.YAMLGlobalConfig
+import net.jeikobu.kotomi.defaultrole.DefaultRoleConfig
 import net.jeikobu.kotomi.reactionroles.ReactionConfig
 import net.jeikobu.kotomi.scrambler.ScramblerCommand
 import net.jeikobu.kotomi.scrambler.ScramblerConfig
@@ -33,13 +34,16 @@ fun <T : AbstractCommand> T.getReactionConfig(): ReactionConfig {
     return kotomi.reactionConfig
 }
 
-fun getVersion(): String {
-    return kotomi.javaClass.`package`.implementationVersion ?: "Dev"
+fun <T : AbstractCommand> T.getDefaultRoleConfig(): DefaultRoleConfig {
+    return kotomi.defaultRoleConfig
 }
 
 fun main() {
     kotomi.registerCommands()
-    kotomi.client.presence.setPresence(OnlineStatus.ONLINE, Game.playing("v" + getVersion()))
-    val tickExecutor = Executors.newScheduledThreadPool(1)
-    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 10, TimeUnit.SECONDS)
+    kotomi.presenceManager.startPresenceChanger()
+
+    // Disabled Scrambler as it is unused
+    // Pending a total rewrite
+    /*val tickExecutor = Executors.newScheduledThreadPool(1)
+    tickExecutor.scheduleAtFixedRate(ScramblerTask(kotomi.configManager, kotomi.client.guilds), 0, 10, TimeUnit.SECONDS)*/
 }
