@@ -33,5 +33,5 @@ jobs:
           username: ${{ secrets.dockerUsername }}
           password: ${{ secrets.dockerPassword }}
           registry: https://docker.jeikobu.net
-          dockerfile: .\Dockerfile
+          dockerfile: Dockerfile
         
